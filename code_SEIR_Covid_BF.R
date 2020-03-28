@@ -129,7 +129,7 @@ parameters_SIR_COVID <- function(countryname, beta = 0.01270518, R0 = NULL, gamm
 	R_0    = rep(0,nage) # vector of recovered
 	
 	# return parameters
-	return(paramSIR = list(vparameters = c(gamma=gamma,beta=beta,C=C), inits = c(S=S_0,I=I_0,R=R_0), R0 = R0))
+	return(paramSIR = list(vparameters = c(gamma=gamma,beta=beta,C=C), inits = c(S=S_0,I=I_0,R=R_0, nage=nage), R0 = R0))
 }
 
 
