@@ -267,8 +267,10 @@ GT <- est.GT(serial.interval = as.integer(int))
 ### function that calculate R0 from a vector of daily new cases (from the first to the last case)
 R0x <- function(x){
 	x <- x[cumsum(x) & rev(cumsum(rev(x)))] # remove leading and ending zeros
-	try(R0 <- estimate.R(epid = x, GT = GT, begin = as.integer("1"), end = as.integer(length(x)), methods=c("ML")))
-	try(return(R0$estimates[[1]]$R))
+	print(length(x))
+	tryCatch(R0 <- estimate.R(epid = x, GT = GT, begin = as.integer("1"), end = as.integer(length(x)), methods=c("ML")), error = function(e) NA)
+	tryCatch(return(R0$estimates[[1]]$R), error = function(e) NA)
+
 }
 
 ### load dataframe of cases
