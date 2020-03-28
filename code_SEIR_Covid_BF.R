@@ -46,7 +46,7 @@ calculate_derivatives=function(t, x, vparameters){
 	R    = as.matrix(x[(2*nage+1):(3*nage)])
 	
 	I[I<0] = 0
-	with(as.list(vparameters),{
+	with(vparameters,{
 		# note that because S, I and R are all vectors of length nage, so will N,
 		# and dS, dI, and dR
 		N = S+I+R
@@ -129,7 +129,7 @@ parameters_SIR_COVID <- function(countryname, beta = 0.01270518, R0 = NULL, gamm
 	R_0    = rep(0,nage) # vector of recovered
 	
 	# return parameters
-	return(paramSIR = list(vparameters = c(gamma=gamma,beta=beta,C=C), inits = c(S=S_0,I=I_0,R=R_0, nage=nage), R0 = R0))
+	return(paramSIR = list(vparameters = list(gamma=gamma,beta=beta,C=C), inits = c(S=S_0,I=I_0,R=R_0), R0 = R0))
 }
 
 
@@ -200,9 +200,9 @@ paramCH <- parameters_SIR_COVID("China")
 vt = seq(0,350,1)  
 
 # solve models and store reults in a dataframe
-mymodel_results_BF <- lsoda(paramBF$inits, vt, calculate_derivatives, paramBF$parameters) %>% as.data.frame()
-mymodel_results_FR <- lsoda(paramFR$inits, vt, calculate_derivatives, paramFR$parameters) %>% as.data.frame()
-mymodel_results_CH <- lsoda(paramCH$inits, vt, calculate_derivatives, paramCH$parameters) %>% as.data.frame()
+mymodel_results_BF <- lsoda(paramBF$inits, vt, calculate_derivatives, paramBF$vparameters) %>% as.data.frame()
+mymodel_results_FR <- lsoda(paramFR$inits, vt, calculate_derivatives, paramFR$vparameters) %>% as.data.frame()
+mymodel_results_CH <- lsoda(paramCH$inits, vt, calculate_derivatives, paramCH$vparameters) %>% as.data.frame()
 
 
 ##### extract interesting indicators
@@ -268,7 +268,7 @@ GT <- est.GT(serial.interval = as.integer(int))
 R0x <- function(x){
 	x <- x[cumsum(x) & rev(cumsum(rev(x)))] # remove leading and ending zeros
 	try(R0 <- estimate.R(epid = x, GT = GT, begin = as.integer("1"), end = as.integer(length(x)), methods=c("ML")))
-	return(R0$estimates[[1]]$R)
+	try(return(R0$estimates[[1]]$R))
 }
 
 ### load dataframe of cases
