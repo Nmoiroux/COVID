@@ -250,40 +250,47 @@ paramFR$R0
 paramBF$R0 
 paramCH$R0 
 
+
+####################################################
+# Estimate R0 from case data in all countries (using the method described in report 1 of ETE team)
+####################################################
+
 library(R0)
 library(lubridate)
-cases_BF <- c(2,2,0,0,3,3,20,20,26,33,40,64,64,75,99,114,146)
 
 
+##### calculate parameters of the GT distribution (needed to evaluate R0)
 interval <- read.csv("interval.txt")
 int <- mdy(interval$InfecteeOnset) - mdy(interval$InfectorOnset) 
 GT <- est.GT(serial.interval = as.integer(int))
-R0 <- estimate.R(epid = cases_BF, GT = GT, begin = 1, end = 17, methods=c("ML"))
-R0$estimates[[1]]$R
 
-
-
+### function that calculate R0 from a vector of daily new cases (from the first to the last case)
 R0x <- function(x){
 	x <- x[cumsum(x) & rev(cumsum(rev(x)))] # remove leading and ending zeros
 	try(R0 <- estimate.R(epid = x, GT = GT, begin = as.integer("1"), end = as.integer(length(x)), methods=c("ML")))
 	return(R0$estimates[[1]]$R)
 }
-R0x(cases_BF)
 
-
-
+### load dataframe of cases
 case <- read.csv("cases_covid_27032020.csv")
-
 case$date <- dmy(case$date)
 
+### test: calculate R0 in France before lockdown (as in report 1 of ETE team)
 case %>% filter(location=="France" & date < dmy("16/03/2020")) %>%
 	dplyr::select(new_cases) %>%
 	R0x()
-			
+
+## R0 in France before 27/03/2020
 case %>% filter(location=="France") %>%
 	dplyr::select(new_cases) %>%
 	R0x()
 
+## R0 in France before 27/03/2020
+case %>% filter(location=="Burkina Faso") %>%
+	dplyr::select(new_cases) %>%
+	R0x()
+
+## R0 for all countries
 R0_world <- case %>% 	
 	group_by(location) %>%
 	summarise(R0 = R0x(new_cases)) 
@@ -302,7 +309,7 @@ tm_shape(df_countries_2) +
 	tm_polygons("R0", breaks = c(0,1,2,3,5,7,10)) 
 
 
-# compare R0
+# compare R0 from case data to R0 from the age-structured model 
 R0_comp <- liste_pays %>% left_join(R0_world, by=c("country"="location")) 
 R0_comp %>%
 	lm(R~R0, data=.)%>%
