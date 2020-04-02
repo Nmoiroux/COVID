@@ -1,0 +1,8 @@
+name: "COVID"
+output_dir: ../docs
+exclude: ["^r_scripts_database$","^r_scripts$","^extdata$","^docs$"]
+navbar:
+  title: "COVID-19"
+  left:
+    - text: "Home"
+      href: README.html
