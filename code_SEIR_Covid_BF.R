@@ -271,6 +271,7 @@ R0x <- function(x){
 	tryCatch(return(R0$estimates[[1]]$R), error = function(e) NA)
 	}
 
+
 ### load dataframe of cases
 case <- read.csv("cases_covid_27032020.csv")
 case$date <- dmy(case$date)
