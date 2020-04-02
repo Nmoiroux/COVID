@@ -1,3 +1,17 @@
+---
+title: "Untitled"
+author: "Nicolas Moiroux, Paul Taconet"
+date: "28/03/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) #set t
+```
+
+
+```{r }
 #####
 # N MOIROUX : nicolas.moiroux@ird.fr
 
@@ -7,7 +21,7 @@ require(tidyverse)
 require(readxl)
 require(tmap)
 require(sf)
-
+require(plotly)
 
 ##### SIR model - this code was slightly modified and adapted from the script of Sherry Towers (informations and copyright below)
 ##################################################################################
@@ -138,7 +152,7 @@ parameters_SIR_COVID <- function(countryname, beta = 0.01270518, R0 = NULL, gamm
 paramFR <- parameters_SIR_COVID("France", beta = NULL, R0 = 2.5, gamma = 1/14)
 # ignore warnings
 beta <- paramFR$vparameters[2]
-beta
+#beta
 
 
 #### Calculate R0 for all countries based on the same probability of transmission on contact (beta)
@@ -163,11 +177,11 @@ liste_pays <- left_join(liste_mat,liste_pays, by="country") %>%
 	mutate(R=NA) 
 
 #### calculate R0 for all countries (146/152 having contact matrix data)
-for (i in 1:nrow(liste_pays)){
-	countryname <- liste_pays[i,1] %>% as.character()
-	par <- parameters_SIR_COVID(countryname=countryname, beta = beta, R0 = NULL, gamma = 1/14)
-	liste_pays$R[i] <- par$R0
-}
+#for (i in 1:nrow(liste_pays)){
+#	countryname <- liste_pays[i,1] %>% as.character()
+#	par <- parameters_SIR_COVID(countryname=countryname, beta = beta, R0 = NULL, gamma = 1/14)
+#	liste_pays$R[i] <- par$R0
+#}
 
 
 #### Map R0
@@ -181,9 +195,9 @@ df_countries <- read_excel("Country.xlsx")[,1:3] %>%
 	left_join(liste_pays, by=c("country")) 
 
 # plot the map
-st_geometry(df_countries) <- df_countries$geometry
-tm_shape(df_countries) +
-	tm_polygons("R")
+#st_geometry(df_countries) <- df_countries$geometry
+#tm_shape(df_countries) +
+#	tm_polygons("R")
 
 
 
@@ -234,21 +248,24 @@ Res_CH <- I_CH / N_CH
 # plot prevalence of infection (time from the first case)
 prev <- data.frame(BF = Res_BF, FR = Res_FR, CH = Res_CH) %>% mutate(days= vt)
 
-prev %>% gather(1:3, key=Country, value=prev) %>%
-ggplot(aes(x = days, y = prev,  group = Country, color = Country)) +
+df <- prev %>% gather(1:3, key=Country, value=prev)
+p <- ggplot(df,aes(x = days, y = prev,  group = Country, color = Country)) +
 	geom_line()
+
+ggplotly(p)
 
 # plot prevalence of immunised people (recovered)
 recov <- data.frame(BF = R_BF / N_BF, FR = R_FR / N_FR, CH = R_CH / N_CH) %>% mutate(days= vt)
-recov %>% gather(1:3, key=Country, value=recov) %>%
-	ggplot(aes(x = days, y = recov,  group = Country, color = Country)) +
+df2 <- recov %>% gather(1:3, key=Country, value=recov)
+p2 <-	ggplot(df2,aes(x = days, y = recov,  group = Country, color = Country)) +
 	geom_line()
 
+ggplotly(p2)
 
 # R0
-paramFR$R0
-paramBF$R0 
-paramCH$R0 
+#paramFR$R0
+#paramBF$R0 
+#paramCH$R0 
 
 
 ####################################################
@@ -271,31 +288,30 @@ R0x <- function(x){
 	tryCatch(return(R0$estimates[[1]]$R), error = function(e) NA)
 	}
 
-
 ### load dataframe of cases
 case <- read.csv("cases_covid_27032020.csv")
 case$date <- dmy(case$date)
 
-### test: calculate R0 in France before lockdown (as in report 1 of ETE team)
-case %>% filter(location=="France" & date < dmy("16/03/2020")) %>%
-	dplyr::select(new_cases) %>%
-	R0x()
-
-## R0 in France before 27/03/2020
-case %>% filter(location=="France") %>%
-	dplyr::select(new_cases) %>%
-	R0x()
-
-## R0 in France before 27/03/2020
-case %>% filter(location=="Burkina Faso") %>%
-	dplyr::select(new_cases) %>%
-	R0x()
-
+# ### test: calculate R0 in France before lockdown (as in report 1 of ETE team)
+# case %>% filter(location=="France" & date < dmy("16/03/2020")) %>%
+# 	dplyr::select(new_cases) #%>%
+# 	R0x()
+# 
+# ## R0 in France before 27/03/2020
+# case %>% filter(location=="France") %>%
+# 	dplyr::select(new_cases) #%>%
+# R0x()
+# 
+# ## R0 in France before 27/03/2020
+# case %>% filter(location=="Burkina Faso") %>%
+# 	dplyr::select(new_cases) #%>%
+# 	R0x()
+# 
 ## R0 for all countries
-R0_world <- case %>% 	
-	group_by(location) %>%
-	summarise(R0 = R0x(new_cases)) 
-
+ R0_world <- case %>% 	
+ 	group_by(location) %>%
+ 	summarise(R0 = R0x(new_cases)) 
+ 
 
 ### plot calculated R0:
 # join World data to the list of countries with calculated R0
@@ -304,16 +320,20 @@ df_countries_2 <- read_excel("Country.xlsx")[,1:3] %>%
 	left_join(World) %>%
 	left_join(R0_world , by=c("country"="location")) 
 
+tmap_mode("view")
 # plot the map
 st_geometry(df_countries_2) <- df_countries_2$geometry
-tm_shape(df_countries_2) +
+	tm_shape(df_countries_2) +
 	tm_polygons("R0", breaks = c(0,1,2,3,5,7,10)) 
 
 
 # compare R0 from case data to R0 from the age-structured model 
 R0_comp <- liste_pays %>% left_join(R0_world, by=c("country"="location")) 
-R0_comp %>%
-	lm(R~R0, data=.)%>%
-	summary()
-plot(R0_comp$R~R0_comp$R0)
-abline(lm(R~R0, data=R0_comp ))
+#R0_comp %>%
+#	lm(R~R0, data=.)%>%
+#	summary()
+#plot(R0_comp$R~R0_comp$R0)
+#abline(lm(R~R0, data=R0_comp ))
+```
+
+
