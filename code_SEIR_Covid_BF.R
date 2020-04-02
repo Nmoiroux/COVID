@@ -317,3 +317,34 @@ R0_comp %>%
 	summary()
 plot(R0_comp$R~R0_comp$R0)
 abline(lm(R~R0, data=R0_comp ))
+
+
+#### data french departements
+hosp <- read.csv("donnees-hospitalieres-covid19-2020-04-01-19h00.csv", sep=";")
+
+# function that gives the daily number of new hospitalization based on daily number of people hospitalized
+firstdiff <- function(x) {
+	shifted <- c(NA,x[1:(length(x)-1)])
+	return(x-shifted)
+}
+
+# calculate R0 since the bigining the first hospitalization
+R0_dpt <- hosp %>% filter(sexe ==0 & dep!="") %>%
+	group_by(dep) %>%
+	mutate(new_cases = firstdiff(hosp)) %>%
+	filter(!(is.na(new_cases))) %>%
+	summarise(R0 = R0x(new_cases)) 
+
+R02_dpt <- hosp %>% filter(sexe ==0 & dep!="") %>%
+	group_by(dep) %>%
+	mutate(new_rea = firstdiff(rea)) %>%
+	filter(!(is.na(new_rea))) %>%
+	summarise(R02 = R0x(new_rea)) 
+
+R0 <- cbind(R0_dpt, R02_dpt)
+	
+chif_cle <- read.csv("chiffres-cles.csv", sep=",")
+	
+	
+Ro_71 <- hosp %>% filter(sexe ==0 & dep=="71") %>%
+	mutate(new_cases = firstdiff(hosp+rea)) 
