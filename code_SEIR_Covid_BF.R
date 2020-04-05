@@ -7,7 +7,7 @@ require(tidyverse)
 require(readxl)
 require(tmap)
 require(sf)
-
+source("Function_COVID_SIR.R")
 
 ##### SIR model - this code was slightly modified and adapted from the script of Sherry Towers (informations and copyright below)
 ##################################################################################
@@ -135,9 +135,9 @@ parameters_SIR_COVID <- function(countryname, beta = 0.01270518, R0 = NULL, gamm
 
 #### how much is beta (probability of transmission on contact) for france giving a nR0 of 2,5 (as calculated by ETE team)
 ## and a gamma (recovery rate) of 1/14 days-1
-paramFR <- parameters_SIR_COVID("France", beta = NULL, R0 = 2.5, gamma = 1/14)
+paramFR <- parameters_SIR_COVID("France", beta = NULL, R0 = 2.5, gamma = 1/20)
 # ignore warnings
-beta <- paramFR$vparameters[2]
+beta <- paramFR$vparameters[2] %>% unlist()
 beta
 
 
@@ -145,21 +145,20 @@ beta
 
 #### dataframe of countries with population data available for 2018
 liste_pays <- data_pop_all %>%  
-	separate(`Indicator Code`, c("ind1", "ind2","Age", "Sexe", "Sy")) %>% 
-	filter(ind1 == "SP", ind2 == "POP", Sexe %in% c("MA","FE"), is.na(Sy)) %>%
+	filter(str_detect(`Indicator Code`,"SP\\.POP\\.[[:digit:]]{2}[[:alnum:]]{2}\\.(FE|MA)$")) %>%
 	group_by(`Country Name`) %>%
 	summarise(n = sum(!is.na(`2018`))) %>%
 	filter(n == 34) %>%
 	ungroup() %>%
 	rename(country=`Country Name`)
 
+
 #### dataframe of countries with available contact matrix
 liste_mat <- c(data_C_1, data_C_2)
 liste_mat <- data.frame(country = liste_mat)
 
 #### join the two dataframe
-liste_pays <- left_join(liste_mat,liste_pays, by="country") %>%
-	filter(n == 34) %>%
+liste_pays <- inner_join(liste_mat,liste_pays, by="country") %>%
 	mutate(R=NA) 
 
 #### calculate R0 for all countries (146/152 having contact matrix data)
@@ -169,7 +168,7 @@ for (i in 1:nrow(liste_pays)){
 	liste_pays$R[i] <- par$R0
 }
 
-
+liste_pays <- liste_pays %>% mutate(R0r = R/2.5)
 #### Map R0
 # load "World" data from package tmap
 data(World) 
@@ -183,9 +182,9 @@ df_countries <- read_excel("Country.xlsx")[,1:3] %>%
 # plot the map
 st_geometry(df_countries) <- df_countries$geometry
 tm_shape(df_countries) +
-	tm_polygons("R")
+	tm_polygons("R0r", breaks = c(0.5,0.9,1.1,1.3,1.5,1.7,1.9,2.3))
 
-
+p # print map
 
 ##################################################################################
 # solve the model for selected countries
@@ -267,8 +266,12 @@ GT <- est.GT(serial.interval = as.integer(int))
 ### function that calculate R0 from a vector of daily new cases (from the first to the last case)
 R0x <- function(x){
 	x <- x[cumsum(x) & rev(cumsum(rev(x)))] # remove leading and ending zeros
-	tryCatch(R0 <- estimate.R(epid = x, GT = GT, begin = as.integer("1"), end = as.integer(length(x)), methods=c("ML")), error = function(e) NA)
-	tryCatch(return(R0$estimates[[1]]$R), error = function(e) NA)
+	tryCatch(R0 <- estimate.R(epid = x, GT = GT, begin = as.integer("1"), end = as.integer(length(x)), methods=c("ML")), error = function(e) NULL)
+	if(is.null(return(R0$estimates[[1]]$R))){
+		return(NA) } 
+		else {
+			return(R0$estimates[[1]]$R)
+		}
 	}
 
 
@@ -281,14 +284,21 @@ case %>% filter(location=="France" & date < dmy("16/03/2020")) %>%
 	dplyr::select(new_cases) %>%
 	R0x()
 
+## R0 in germany 
+x <- case %>% filter(location=="Germany") %>%
+	dplyr::select(new_cases) 
+x <- x[,1]
+i<- 2
+for (i in 1:70){
+	y <- x[i:length(x)]
+	y <- y[cumsum(y) & rev(cumsum(rev(y)))] # remove leading and ending zeros
+	try(print(estimate.R(y,GT, begin=as.integer("1"), end=as.integer(length(y)),methods=c("ML"))))
+}
+GT
+R0x(x)
 ## R0 in France before 27/03/2020
-case %>% filter(location=="France") %>%
-	dplyr::select(new_cases) %>%
-	R0x()
-
-## R0 in France before 27/03/2020
-case %>% filter(location=="Burkina Faso") %>%
-	dplyr::select(new_cases) %>%
+case %>% filter(location=="Russia") %>%
+	dplyr::select(new_cases) %>% as.vector() %>%
 	R0x()
 
 ## R0 for all countries
@@ -296,6 +306,22 @@ R0_world <- case %>%
 	group_by(location) %>%
 	summarise(R0 = R0x(new_cases)) 
 
+R0_by_date <- function(date1, country){
+	tryCatch(x <- case %>% filter(location == country & date < date1 & date > (date1-15)) %>%
+		dplyr::select(new_cases) %>% R0x, error = function(e) NA)
+	return(x)
+}
+
+
+caseFR <- case %>% filter(location=="France")
+R0_time <- map2(caseFR$date, caseFR$location, R0_by_date)
+date1 <- ymd("2020-03-27")
+date1-15
+
+country <- "France"
+R0_by_date(date1, country)
+
+caseFR$R0 <- R0_time
 
 ### plot calculated R0:
 # join World data to the list of countries with calculated R0
