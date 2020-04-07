@@ -131,7 +131,8 @@ fig_mat <- map(param_list, function(x){
 		geom_tile() +
 		scale_fill_gradient(low="white",high="darkblue", limits=c(0,25),guide = FALSE) +
 		labs(y="Age of contact", x="Age of individual") + 
-		theme(axis.text.x = element_text(angle = 90, vjust=0.5))
+		theme(axis.text.x = element_text(angle = 90, vjust=0.5, color=rep(c(1,0),times=8)))+ 
+		theme(axis.text.y = element_text(color=rep(c(0,1),times=8)))
 		
 
 	return(g)
@@ -167,7 +168,7 @@ fig_ctc <- map(param_list, function(x){
 # list of list of figures
 list_l_fig <- list(fig_age, fig_ctc, fig_mat)
 
-# expl, multipanel fig
+# plot a multipanel figure
 
 figure_pop <- multi_panel_figure(columns = length(countries), rows = length(list_l_fig))   # create multipanel figure
 
@@ -177,22 +178,10 @@ for (l in 1:length(list_l_fig)){
 	}	
 }
 
-for (i in 1:length(countries)){
-	figure_pop %<>%	fill_panel(fig_age[[i]], col=i, row=1)
-}	
-
-for (i in 1:length(countries)){
-	figure_pop %<>%	fill_panel(fig_mat[[i]], col=i, row=2)
-}	
 figure_pop
 
 
-fill_panel(Fig2A, column = 1, row = 1:2) %<>%
-	fill_panel(Fig2B, column = 2, row = 1) %<>%
-	fill_panel(Fig2C, column = 3, row = 1) %<>%
-	fill_panel(Fig2D, column = 2, row = 2)
 
-figure2
 
 
 
