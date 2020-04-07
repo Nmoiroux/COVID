@@ -59,15 +59,15 @@ calculate_derivatives <- function(t, x, vparameters){
 # needs (beta OR R0) AND gamma as arguments
 # if beta is known, R0 is calculated
 # if R0 is known, beta is calculated 
-parameters_SIR_COVID <- function(countryname, beta = 0.01270518, R0 = NULL, gamma = 1/14){
-	#coutryname=liste_pays[1,1]
+parameters_SIR_COVID <- function(countryname, beta = 0.01270518, R0 = NULL, gamma = 1/14, ages=age_cl){
+
 	# search and load the contact matrix
 	if (countryname %in% data_C_1 ){
 		C <- CI_act_df <- read_excel("MUestimates_all_locations_1.xlsx", sheet = countryname) %>% as.matrix()
 	} else if (countryname %in% data_C_2){
 		C <- CI_act_df <- read_excel("MUestimates_all_locations_2.xlsx", sheet = countryname, col_names = FALSE) %>% as.matrix()
 	}
-	
+	row.names(C) <- colnames(C) <- ages
 	# load population data
 	data_pop <- data_pop_all %>%	filter(`Country Name`==countryname)
 	
@@ -108,7 +108,7 @@ parameters_SIR_COVID <- function(countryname, beta = 0.01270518, R0 = NULL, gamm
 		R0 <- beta / gamma * max(Re(eig$values))
 		
 	} else {
-		print("one parameter beta or R0 should have a value, the other should be NULL")
+		print("one argument among beta and R0 should be filled, the other should be set to NULL")
 	}
 	
 	# initial population (N individuals in each compartment and age classe)

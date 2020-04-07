@@ -1,7 +1,7 @@
 ---
-title: "An age-structured SIR model of COVID19 to study the impact of age structure and intercations on the spread of the disease in 146 countries"
-author: "Nicolas Moiroux, Paul Taconet"
-date: "28/03/2020"
+title: "Effect of age distributions and social contact patterns on the Covid19 outbreak: predictions for 147 countries"
+author: "Nicolas Moiroux, Paul Taconet (MIVEGEC, Univ. Montpellier, CNRS, IRD)"
+date: "07/04/2020"
 output: html_document
 ---
 
@@ -10,180 +10,112 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) #set t
 ```
 
-## The model
+## Introduction
+*"assessing the effectiveness of interventions that specifically target social networks, such as school closure [or lockdown], requires models that explicitly account for such social structure"* (Prem *et al.* 2017).  
+The objective of the present work was to investigate, in absence of any intervention, how much country-specific age distribution and social contact pattern affect the basic reproductive number ($R_{0}$) and the expected spread of the COVID-19 disease. Using an age-structured SIR model, age distribution data and contact matrices, we predicted and mapped $R_{0}$ of 147 countries. We also presents dynamic of the outbreak, as predicted by the model, for some selected countries.  
+\
+\
 
+## Methods
+#### The SIR model
+We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75+). The model was adapted from [here](http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/).
 
-```{r }
+![](SIRmod.JPG)
+
+*Where $\beta$ is the probability of transmission on contact, $i$ and $j$ are indices for age classes, $\gamma$ is the recovery rate. $C$ is the contact matrix. $N_{j}$ is the population in age $j$.*\
+\
+\
+In such a model, the relationship between the basic reproductive number $R_{0}$ and the probability $\beta$ of transmission on contact is given by the following equations (Towers *et al.* 2012):
+
+![](R0_beta_equ.JPG)
+
+*Where $\lambda$ is the largest eigenvalue of the matrix $M$ such as $M_{ij} = C_{ij}f_{i}/f{j}$ with $f_{i}$ and $f_{j}$ are frequencies in the population of age classes $i$ and $j$, respectively.*\
+\
+
+#### Data
+Contact matrices for 152 countries were obtained from the work of [Prem](https://doi.org/10.1371/journal.pcbi.1005697) *et al.* (2017).  
+Data of age structure were obtained from the *Health Nutrition and Population* (HNP) database available on the World Bank [website](https://datacatalog.worldbank.org/dataset/health-nutrition-and-population-statistics).  
+\
+
+#### Model parameters
+From an [estimated $R_{0}$](http://alizon.ouvaton.org/Rapport1_R0_France.html#situation_post-confinement) of 2.5 in France, we estimated parameter $\beta$ (probability of transmission on contact) using *Expression 4*. Parameter $\gamma$ (recovery rate) was set to 1/11 days$^{-1}$ that correspond to the mean duration of infectiousness of infected individuals (ref).
+\
+
+#### Analyses
+All analyses were done using the software R.
+\
+We calculated $R_{0}$ for all countries having both contact matrix and age structure data available. We used *Expression 5* for this task using the value of $\beta$ calculated for France (see *Model Parameter paragraph*). Predicted $R_{0}$ for 147 countries were mapped using additional R packages sf and plotly.\
+We simulated the dynamic of the outbreak (prevalence of infection and prevalence of immunization in the population) for 4 selected countries: France, Germany, China and Niger.
+\
+\
+
+## Results
+```{r}
 #####
 # N MOIROUX : nicolas.moiroux@ird.fr
 
 # load required libraries
 require(deSolve)
+require(R0)
+require(lubridate)
 require(tidyverse)
 require(readxl)
 require(tmap)
 require(sf)
 require(plotly)
+require(multipanelfigure)
+source("Function_COVID_SIR.R")
 
-##### SIR model - this code was slightly modified and adapted from the script of Sherry Towers (informations and copyright below)
-##################################################################################
-# An R script to solve ODE's of an SIR model with age structure
-# Further info at http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/
-#
-# Author: Sherry Towers
-#         smtowers@asu.edu
-# Created: Dec 2nd, 2012
-#
-# Copyright Sherry Towers, 2012
-#
-# This script is not guaranteed to be free of bugs and/or errors.
-#
-# This script can be freely used and shared as long as the author and 
-# copyright information in this header remain intact.
-##################################################################################
-##################################################################################
-# this is an age structured SIR model
-# the parameters in the vparameters list are:
-#    the recovery period, gamma
-#    the probability of transmission on contact, beta
-#    the contact matrix, C, that is the # contacts per day among age groups
-#
-# Note that x is a vector of length (#model compartment types)*(#age classes)
-# For the SIR model, there are 3 model compartment types (S, I, and R)
-# The code at the beginning of the function fills the age classes for each
-# model compartment type in turn.
-# Thus, S, I and R are vectors, all of length nage
-##################################################################################
-calculate_derivatives=function(t, x, vparameters){
-	ncompartment = 3
-	nage = length(x)/ncompartment
-	S    = as.matrix(x[1:nage])
-	I    = as.matrix(x[(nage+1):(2*nage)])
-	R    = as.matrix(x[(2*nage+1):(3*nage)])
-	
-	I[I<0] = 0
-	with(vparameters,{
-		# note that because S, I and R are all vectors of length nage, so will N,
-		# and dS, dI, and dR
-		N = S+I+R
-		dS = -as.matrix(S*beta)*(as.matrix(C)%*%as.matrix(I/N))
-		dI = -dS - gamma*as.matrix(I)
-		dR = +gamma*as.matrix(I)
-		# remember that you have to have the output in the same order as the model
-		# compartments are at the beginning of the function
-		out=c(dS,dI,dR)
-		list(out)
-	})
-}
-
-##################################################################################
-##################################################################################
+#### load data ----
+### dataframe with age structure (World bank)
 data_pop_all <- read_excel("HNP_StatsEXCEL.xlsx") %>% as.data.frame() # data from World Bank
-data_C_1 <- excel_sheets("MUestimates_all_locations_1.xlsx") # data from https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005697
+
+### contact matrices data from https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005697
+data_C_1 <- excel_sheets("MUestimates_all_locations_1.xlsx") 
 data_C_2 <- excel_sheets("MUestimates_all_locations_2.xlsx")
 
-#### function that calculate initial parameters for the model, needs country name (as in the "Table Name" column of the Country.xlsx)
-## needs beta OR R0 AND gamma
-## if beta is known, R0 is calculated
-## if R0 is known, beta is calculated 
-parameters_SIR_COVID <- function(countryname, beta = 0.01270518, R0 = NULL, gamma = 1/14){
-	
-	# search and load the contact matrix
-	if (countryname %in% data_C_1 ){
-		C <- CI_act_df <- read_excel("MUestimates_all_locations_1.xlsx", sheet = countryname) %>% as.matrix()
-	} else if (countryname %in% data_C_2){
-		C <- CI_act_df <- read_excel("MUestimates_all_locations_2.xlsx", sheet = countryname, col_names = FALSE) %>% as.matrix()
-	}
-	
-	# load population data
-	data_pop <- data_pop_all %>%	filter(`Country Name`==countryname)
-	
-	# select usefull data (population per age classes)
-	pop <- data_pop  %>%
-		separate(`Indicator Code`, c("ind1", "ind2","Age", "Sexe", "Sy")) %>% 
-		filter(ind1 == "SP", ind2 == "POP", Sexe %in% c("MA","FE"), is.na(Sy)) %>%
-		group_by(Age) %>%
-		summarise(pop = sum(`2018`)) %>%
-		ungroup()
-	
-	# sum age classes 75-79 and 80+ into one classe 75+
-	new_line <- pop %>% mutate(sel = c(rep(1,15),0,0)) %>%
-		group_by(sel) %>%
-		summarise(sum=sum(pop)) %>%
-		filter(sel==0)
-	pop <- pop %>% filter(!(Age %in% c("7579","80UP"))) %>% rbind(c("75UP",as.numeric(new_line[1,2])))
-	pop$pop <- as.numeric(pop$pop)
-	
-	
-	# 
-	f <- pop$pop / sum(pop$pop) # frequency per age classe
-	N <- pop$pop # Number of individuals per age classe
-	nage = length(f) # Number of age classes
-	
-	# Calculate beta / R0 according to Towers et al. 2012
-	ex <- expand.grid(1:nage,1:nage) 
-	M <-map2(ex$Var1, ex$Var2, .f =fun <- function(i,j){C[i,j]*f[i]/f[j]}) %>% unlist() %>% matrix(nrow = nage)
-	eig <- eigen(M)
-
-	 
-	if (is.null(beta) & !(is.null(R0)))	{
-		
-		beta = R0*gamma/max(Re(eig$values)) 
-		
-	} else if (is.null(R0) & !(is.null(beta)))	{
-		
-		R0 <- beta / gamma * max(Re(eig$values))
-		
-	} else {
-		print("one parameter beta or R0 should have a value, the other should be NULL")
-	}
-	
-	# initial population (N individuals in each compartment and age classe)
-	I_0    = rep(0,nage) # vector of Infected
-	I_0[13] <- 1				 # put one infected person in 60-64 age classes
-	S_0    = N-I_0				# vector of Susceptible
-	R_0    = rep(0,nage) # vector of recovered
-	
-	# return parameters
-	return(paramSIR = list(vparameters = list(gamma=gamma,beta=beta,C=C), inits = c(S=S_0,I=I_0,R=R_0), R0 = R0))
-}
+### age classes (from matrix), used to rename rox- and col-names of the matrices
+age_cl <- c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75+")
 
 
-#### how much is beta (probability of transmission on contact) for france giving a nR0 of 2,5 (as calculated by ETE team)
-## and a gamma (recovery rate) of 1/14 days-1
-paramFR <- parameters_SIR_COVID("France", beta = NULL, R0 = 2.5, gamma = 1/14)
+#### how much is beta (probability of transmission on contact) for France giving an R0 of 2,5 (as calculated by ETE team) and a gamma (recovery rate) of 11 days-1 ----
+#
+gamma <- 1/11
+paramFR <- parameters_SIR_COVID("France", beta = NULL, R0 = 2.5, gamma = gamma, age_cl)
 # ignore warnings
-beta <- paramFR$vparameters[2]
-#beta
+beta <- paramFR$vparameters[2] %>% unlist()
+
+```
+
+Probability $\beta$ of transmission on contact based on an estimated $R_{0}$ of 2.5 in France was estimated to be `r beta`. Using this value of $\beta$, we were able to predict $R_{0}$ in 147 countries (Figure 1) for which both contact matrices and age structure data were available.
 
 
-#### Calculate R0 for all countries based on the same probability of transmission on contact (beta)
+```{r}
+#### Calculate R0 for all countries based on the same probability of transmission on contact (beta)----
 
-#### dataframe of countries with population data available for 2018
-liste_pays <- data_pop_all %>%  
-	separate(`Indicator Code`, c("ind1", "ind2","Age", "Sexe", "Sy")) %>% 
-	filter(ind1 == "SP", ind2 == "POP", Sexe %in% c("MA","FE"), is.na(Sy)) %>%
+## dataframe of countries with population data available for 2018
+liste_pays <-data_pop_all %>%  
+	filter(str_detect(`Indicator Code`,"SP\\.POP\\.[[:digit:]]{2}[[:alnum:]]{2}\\.(FE|MA)$")) %>%
 	group_by(`Country Name`) %>%
 	summarise(n = sum(!is.na(`2018`))) %>%
 	filter(n == 34) %>%
 	ungroup() %>%
 	rename(country=`Country Name`)
 
-#### dataframe of countries with available contact matrix
+## dataframe of countries with available contact matrix
 liste_mat <- c(data_C_1, data_C_2)
 liste_mat <- data.frame(country = liste_mat)
 
-#### join the two dataframe
-liste_pays <- left_join(liste_mat,liste_pays, by="country") %>%
-	filter(n == 34) %>%
+## join the two dataframes
+liste_pays <- inner_join(liste_mat,liste_pays, by="country") %>%
 	mutate(R=NA) 
 
-#### calculate R0 for all countries (146/152 having contact matrix data)
-#for (i in 1:nrow(liste_pays)){
-#	countryname <- liste_pays[i,1] %>% as.character()
-#	par <- parameters_SIR_COVID(countryname=countryname, beta = beta, R0 = NULL, gamma = 1/14)
-#	liste_pays$R[i] <- par$R0
-#}
+## calculate R0 for all countries (146/152 having contact matrix data)
+for (i in 1:nrow(liste_pays)){
+	countryname <- liste_pays[i,1] %>% as.character()
+	par <- parameters_SIR_COVID(countryname=countryname, beta = beta, R0 = NULL, gamma = gamma, age_cl)
+	liste_pays$R[i] <- par$R0
+}
 
 
 #### Map R0
@@ -197,145 +129,143 @@ df_countries <- read_excel("Country.xlsx")[,1:3] %>%
 	left_join(liste_pays, by=c("country")) 
 
 # plot the map
-#st_geometry(df_countries) <- df_countries$geometry
-#tm_shape(df_countries) +
-#	tm_polygons("R")
+tmap_mode("view")
+st_geometry(df_countries) <- df_countries$geometry
+map1 <- tm_shape(df_countries) +
+	tm_polygons("R")
+map1
+```
 
+##### Figure 1: Map of predicted $R_{0}$ for 147 countries in abscence of intervention according to an age-structured SIR model.  
+*Countries differ only for age distribution of their population and for social contact patterns. Other parameters ($\beta$ and $\gamma$) being equals.***These $R_{0}$ values are prediction of a model, they are not real data** 
+  
 
+Predicted $R_{0}$ ranged from `r round(min(liste_pays$R),2)` in Germany to `r round(max(liste_pays$R),2)` in Niger. 
+Higher values of R0 were found to be in the inter-tropical region.\
+\
+We selected four countries: Niger (higher predicted $R_{0}$), France, China and Germany (lower predicted $R_{0}$). Age distribution and contact matrix for each of these countries are presented in Figure 2:
+\
+\
 
+```{r}
 ##################################################################################
-# solve the model for selected countries
+# solve the model for selected countries ----
 ##################################################################################
-paramBF <- parameters_SIR_COVID(countryname="Burkina Faso")
-paramFR <- parameters_SIR_COVID("France")
-paramCH <- parameters_SIR_COVID("China")
+countries <- c("Niger", "France", "China", "Germany")
+param_list <- map(countries, parameters_SIR_COVID)
 
 ##################################################################################
 # determine the values of S,I and R at times in vt
 ##################################################################################
-vt = seq(0,350,1)  
+vt = seq(0,600,1)  
 
-# solve models and store reults in a dataframe
-mymodel_results_BF <- lsoda(paramBF$inits, vt, calculate_derivatives, paramBF$vparameters) %>% as.data.frame()
-mymodel_results_FR <- lsoda(paramFR$inits, vt, calculate_derivatives, paramFR$vparameters) %>% as.data.frame()
-mymodel_results_CH <- lsoda(paramCH$inits, vt, calculate_derivatives, paramCH$vparameters) %>% as.data.frame()
+# solve models and store results in a list
+
+mymodel_results <- map(param_list,lsoda2, vt)
+
+#### Figure of contact matrices and age strucure for selected countries ----
+# list of matrix plots (1 per selected country)
+fig_mat <- map(param_list, function(x){
+	C <- x$vparameters$C %>% as.table() %>% as.data.frame()
+	g <- ggplot(C, aes(Var2, Var1, fill= Freq)) + 
+		geom_tile() +
+		scale_fill_gradient(low="white",high="darkblue", limits=c(0,25),guide = FALSE) +
+		labs(y="Age of contact", x="Age of individual") + 
+		theme(axis.text.x = element_text(angle = 90, vjust=0.5, color=rep(c(1,0),times=8)))
 
 
-##### extract interesting indicators
-# calculate total Number of habitants
-N_BF <- mymodel_results_BF[1,2:17] %>% sum()
-N_FR <- mymodel_results_FR[1,2:17] %>% sum()
-N_CH <- mymodel_results_CH[1,2:17] %>% sum()
+	return(g)
+})
 
-# calculate total Number of Infected per day
-I_BF <- mymodel_results_BF[,18:33] %>% rowSums()
-I_FR <- mymodel_results_FR[,18:33] %>% rowSums()
-I_CH <- mymodel_results_CH[,18:33] %>% rowSums()
+# list of age distribution plots
+fig_age <- map(param_list, function(x){
+	S <- x$inits[1:16]
+	P <- data.frame(age=age_cl, freq=S / sum(S))
+	P$age <- factor(P$age, levels = P$age) # lock levels order
+	bp <- ggplot(P, aes(x = age, y=freq))+
+		geom_bar(stat = "identity") +
+		ylab("frequency") + xlab("")+
+		theme(axis.text.x = element_blank())
+	return(bp)
+})
 
-# calculate total Number of Susceptible per day
-S_BF <- mymodel_results_BF[,2:17] %>% rowSums()
-S_FR <- mymodel_results_FR[,2:17] %>% rowSums()
-S_CH <- mymodel_results_CH[,2:17] %>% rowSums()
+# daily number of contact per age classes
+fig_ctc <- map(param_list, function(x){
+	C <- x$vparameters$C %>% as.table() %>% as.data.frame()
+	S <- C %>% group_by(Var1) %>% 
+		summarise(sum = sum(Freq)) %>%
+		mutate(age=Var1)
+	S$age <- factor(S$age, levels = S$age) # lock levels order
+	bp <- ggplot(S, aes(x = age, y=sum))+
+		geom_bar(stat = "identity") +
+		ylim(c(0,45)) +
+		ylab("daily no. of contacts") + xlab("") +
+		theme(axis.text.x = element_blank())
+	return(bp)
+})
 
-# calculate total Number of Susceptible per day
-R_BF <- mymodel_results_BF[,34:49] %>% rowSums()
-R_FR <- mymodel_results_FR[,34:49] %>% rowSums()
-R_CH <- mymodel_results_CH[,34:49] %>% rowSums()
+# list of list of figures
+list_l_fig <- list(fig_age, fig_ctc, fig_mat)
 
-# prevalence per day
-Res_BF <- I_BF / N_BF
-Res_FR <- I_FR / N_FR
-Res_CH <- I_CH / N_CH
+# plot a multipanel figure
+
+figure_pop <- multi_panel_figure(columns = length(countries), rows = length(list_l_fig))   # create multipanel figure
+
+for (l in 1:length(list_l_fig)){
+	for (i in 1:length(countries)){
+		figure_pop %<>%	fill_panel(list_l_fig[[l]][[i]], col=i, row=l)
+	}	
+}
+
+figure_pop
+
+
+```
+
+##### Figure 2: Age distribution, daily number of contacts and contact matrices for Niger (A, E, I), France (B, F, J), China (C, G, K) and Germany (D, H, L).
+*For contact matrix plots, darker color intensities indicate more contacts.*
+\
+\
+
+
+
+```{r}
+
+# extract prevalence of infection
+prev.df <- map(mymodel_results, function(x){rowSums(x[,18:33]/sum(x[1,2:17]))}) %>% unlist() %>% as.data.frame() %>% mutate(days= rep(vt, length(countries)), Country = rep(countries, each=length(vt)))
+
+colnames(prev.df)[1]<- "prev"
 
 # plot prevalence of infection (time from the first case)
-prev <- data.frame(BF = Res_BF, FR = Res_FR, CH = Res_CH) %>% mutate(days= vt)
-
-df <- prev %>% gather(1:3, key=Country, value=prev)
-p <- ggplot(df,aes(x = days, y = prev,  group = Country, color = Country)) +
+p <- ggplot(prev.df,aes(x = days, y = prev,  group = Country, color = Country)) +
 	geom_line()
 
 ggplotly(p)
-
-# plot prevalence of immunised people (recovered)
-recov <- data.frame(BF = R_BF / N_BF, FR = R_FR / N_FR, CH = R_CH / N_CH) %>% mutate(days= vt)
-df2 <- recov %>% gather(1:3, key=Country, value=recov)
-p2 <-	ggplot(df2,aes(x = days, y = recov,  group = Country, color = Country)) +
-	geom_line()
-
-ggplotly(p2)
-
-# R0
-#paramFR$R0
-#paramBF$R0 
-#paramCH$R0 
-
-
-####################################################
-# Estimate R0 from case data in all countries (using the method described in report 1 of ETE team)
-####################################################
-
-library(R0)
-library(lubridate)
-
-
-##### calculate parameters of the GT distribution (needed to evaluate R0)
-interval <- read.csv("interval.txt")
-int <- mdy(interval$InfecteeOnset) - mdy(interval$InfectorOnset) 
-GT <- est.GT(serial.interval = as.integer(int))
-
-### function that calculate R0 from a vector of daily new cases (from the first to the last case)
-R0x <- function(x){
-	x <- x[cumsum(x) & rev(cumsum(rev(x)))] # remove leading and ending zeros
-	tryCatch(R0 <- estimate.R(epid = x, GT = GT, begin = as.integer("1"), end = as.integer(length(x)), methods=c("ML")), error = function(e) NA)
-	tryCatch(return(R0$estimates[[1]]$R), error = function(e) NA)
-	}
-
-### load dataframe of cases
-case <- read.csv("cases_covid_27032020.csv")
-case$date <- dmy(case$date)
-
-# ### test: calculate R0 in France before lockdown (as in report 1 of ETE team)
-# case %>% filter(location=="France" & date < dmy("16/03/2020")) %>%
-# 	dplyr::select(new_cases) #%>%
-# 	R0x()
-# 
-# ## R0 in France before 27/03/2020
-# case %>% filter(location=="France") %>%
-# 	dplyr::select(new_cases) #%>%
-# R0x()
-# 
-# ## R0 in France before 27/03/2020
-# case %>% filter(location=="Burkina Faso") %>%
-# 	dplyr::select(new_cases) #%>%
-# 	R0x()
-# 
-## R0 for all countries
- R0_world <- case %>% 	
- 	group_by(location) %>%
- 	summarise(R0 = R0x(new_cases)) 
- 
-
-### plot calculated R0:
-# join World data to the list of countries with calculated R0
-df_countries_2 <- read_excel("Country.xlsx")[,1:3] %>%
-	rename(iso_a3 = `Country Code`, country = `Table Name`) %>%
-	left_join(World) %>%
-	left_join(R0_world , by=c("country"="location")) 
-
-tmap_mode("view")
-# plot the map
-st_geometry(df_countries_2) <- df_countries_2$geometry
-	tm_shape(df_countries_2) +
-	tm_polygons("R0", breaks = c(0,1,2,3,5,7,10)) 
-
-
-# compare R0 from case data to R0 from the age-structured model 
-R0_comp <- liste_pays %>% left_join(R0_world, by=c("country"="location")) 
-#R0_comp %>%
-#	lm(R~R0, data=.)%>%
-#	summary()
-#plot(R0_comp$R~R0_comp$R0)
-#abline(lm(R~R0, data=R0_comp ))
 ```
 
+##### Figure 3: Dynamic of the prevalence of infection according to an age-structured SIR model for four countries with diferrent age distribution of their population and different contact patterns.
+
+\
+\
+```{r}
+# plot prevalence of immunised people (recovered)
+recov.df <- map(mymodel_results, function(x){rowSums(x[,34:49]/sum(x[1,2:17]))}) %>% unlist() %>% as.data.frame() %>% mutate(days= rep(vt, length(countries)), Country = rep(countries, each=length(vt)))
+colnames(recov.df)[1]<- "recov"
+
+p2 <-	ggplot(recov.df,aes(x = days, y = recov,  group = Country, color = Country)) +
+	geom_line()
+ggplotly(p2)
+```
+
+##### Figure 3:
+\
+
+R0
+```{r}
+# R0
+for (i in 1:length(countries)){
+	cat(countries[i], "R0=", param_list[[i]]$R0, "\n")
+}
+
+```
 

@@ -3,148 +3,40 @@
 
 # load required libraries
 require(deSolve)
+require(R0)
+require(lubridate)
 require(tidyverse)
 require(readxl)
 require(tmap)
 require(sf)
+require(plotly)
+require(multipanelfigure)
 source("Function_COVID_SIR.R")
 
-##### SIR model - this code was slightly modified and adapted from the script of Sherry Towers (informations and copyright below)
-##################################################################################
-# An R script to solve ODE's of an SIR model with age structure
-# Further info at http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/
-#
-# Author: Sherry Towers
-#         smtowers@asu.edu
-# Created: Dec 2nd, 2012
-#
-# Copyright Sherry Towers, 2012
-#
-# This script is not guaranteed to be free of bugs and/or errors.
-#
-# This script can be freely used and shared as long as the author and 
-# copyright information in this header remain intact.
-##################################################################################
-##################################################################################
-# this is an age structured SIR model
-# the parameters in the vparameters list are:
-#    the recovery period, gamma
-#    the probability of transmission on contact, beta
-#    the contact matrix, C, that is the # contacts per day among age groups
-#
-# Note that x is a vector of length (#model compartment types)*(#age classes)
-# For the SIR model, there are 3 model compartment types (S, I, and R)
-# The code at the beginning of the function fills the age classes for each
-# model compartment type in turn.
-# Thus, S, I and R are vectors, all of length nage
-##################################################################################
-calculate_derivatives=function(t, x, vparameters){
-	ncompartment = 3
-	nage = length(x)/ncompartment
-	S    = as.matrix(x[1:nage])
-	I    = as.matrix(x[(nage+1):(2*nage)])
-	R    = as.matrix(x[(2*nage+1):(3*nage)])
-	
-	I[I<0] = 0
-	with(vparameters,{
-		# note that because S, I and R are all vectors of length nage, so will N,
-		# and dS, dI, and dR
-		N = S+I+R
-		dS = -as.matrix(S*beta)*(as.matrix(C)%*%as.matrix(I/N))
-		dI = -dS - gamma*as.matrix(I)
-		dR = +gamma*as.matrix(I)
-		# remember that you have to have the output in the same order as the model
-		# compartments are at the beginning of the function
-		out=c(dS,dI,dR)
-		list(out)
-	})
-}
-
-##################################################################################
-##################################################################################
+#### load data ----
+### dataframe with age structure (World bank)
 data_pop_all <- read_excel("HNP_StatsEXCEL.xlsx") %>% as.data.frame() # data from World Bank
-data_C_1 <- excel_sheets("MUestimates_all_locations_1.xlsx") # data from https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005697
+
+### contact matrices data from https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005697
+data_C_1 <- excel_sheets("MUestimates_all_locations_1.xlsx") 
 data_C_2 <- excel_sheets("MUestimates_all_locations_2.xlsx")
 
-#### function that calculate initial parameters for the model, needs country name (as in the "Table Name" column of the Country.xlsx)
-## needs beta OR R0 AND gamma
-## if beta is known, R0 is calculated
-## if R0 is known, beta is calculated 
-parameters_SIR_COVID <- function(countryname, beta = 0.01270518, R0 = NULL, gamma = 1/14){
-	
-	# search and load the contact matrix
-	if (countryname %in% data_C_1 ){
-		C <- CI_act_df <- read_excel("MUestimates_all_locations_1.xlsx", sheet = countryname) %>% as.matrix()
-	} else if (countryname %in% data_C_2){
-		C <- CI_act_df <- read_excel("MUestimates_all_locations_2.xlsx", sheet = countryname, col_names = FALSE) %>% as.matrix()
-	}
-	
-	# load population data
-	data_pop <- data_pop_all %>%	filter(`Country Name`==countryname)
-	
-	# select usefull data (population per age classes)
-	pop <- data_pop  %>%
-		separate(`Indicator Code`, c("ind1", "ind2","Age", "Sexe", "Sy")) %>% 
-		filter(ind1 == "SP", ind2 == "POP", Sexe %in% c("MA","FE"), is.na(Sy)) %>%
-		group_by(Age) %>%
-		summarise(pop = sum(`2018`)) %>%
-		ungroup()
-	
-	# sum age classes 75-79 and 80+ into one classe 75+
-	new_line <- pop %>% mutate(sel = c(rep(1,15),0,0)) %>%
-		group_by(sel) %>%
-		summarise(sum=sum(pop)) %>%
-		filter(sel==0)
-	pop <- pop %>% filter(!(Age %in% c("7579","80UP"))) %>% rbind(c("75UP",as.numeric(new_line[1,2])))
-	pop$pop <- as.numeric(pop$pop)
-	
-	
-	# 
-	f <- pop$pop / sum(pop$pop) # frequency per age classe
-	N <- pop$pop # Number of individuals per age classe
-	nage = length(f) # Number of age classes
-	
-	# Calculate beta / R0 according to Towers et al. 2012
-	ex <- expand.grid(1:nage,1:nage) 
-	M <-map2(ex$Var1, ex$Var2, .f =fun <- function(i,j){C[i,j]*f[i]/f[j]}) %>% unlist() %>% matrix(nrow = nage)
-	eig <- eigen(M)
-
-	 
-	if (is.null(beta) & !(is.null(R0)))	{
-		
-		beta = R0*gamma/max(Re(eig$values)) 
-		
-	} else if (is.null(R0) & !(is.null(beta)))	{
-		
-		R0 <- beta / gamma * max(Re(eig$values))
-		
-	} else {
-		print("one parameter beta or R0 should have a value, the other should be NULL")
-	}
-	
-	# initial population (N individuals in each compartment and age classe)
-	I_0    = rep(0,nage) # vector of Infected
-	I_0[13] <- 1				 # put one infected person in 60-64 age classes
-	S_0    = N-I_0				# vector of Susceptible
-	R_0    = rep(0,nage) # vector of recovered
-	
-	# return parameters
-	return(paramSIR = list(vparameters = list(gamma=gamma,beta=beta,C=C), inits = c(S=S_0,I=I_0,R=R_0), R0 = R0))
-}
+### age classes (from matrix), used to rename rox- and col-names of the matrices
+age_cl <- c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75+")
 
 
-#### how much is beta (probability of transmission on contact) for france giving a nR0 of 2,5 (as calculated by ETE team)
-## and a gamma (recovery rate) of 1/14 days-1
-paramFR <- parameters_SIR_COVID("France", beta = NULL, R0 = 2.5, gamma = 1/20)
+#### how much is beta (probability of transmission on contact) for France giving an R0 of 2,5 (as calculated by ETE team) and a gamma (recovery rate) of 11 days-1 ----
+#
+gamma <- 1/11
+paramFR <- parameters_SIR_COVID("France", beta = NULL, R0 = 2.5, gamma = gamma, age_cl)
 # ignore warnings
 beta <- paramFR$vparameters[2] %>% unlist()
-beta
 
 
-#### Calculate R0 for all countries based on the same probability of transmission on contact (beta)
+#### Calculate R0 for all countries based on the same probability of transmission on contact (beta)----
 
-#### dataframe of countries with population data available for 2018
-liste_pays <- data_pop_all %>%  
+## dataframe of countries with population data available for 2018
+liste_pays <-data_pop_all %>%  
 	filter(str_detect(`Indicator Code`,"SP\\.POP\\.[[:digit:]]{2}[[:alnum:]]{2}\\.(FE|MA)$")) %>%
 	group_by(`Country Name`) %>%
 	summarise(n = sum(!is.na(`2018`))) %>%
@@ -152,24 +44,23 @@ liste_pays <- data_pop_all %>%
 	ungroup() %>%
 	rename(country=`Country Name`)
 
-
-#### dataframe of countries with available contact matrix
+## dataframe of countries with available contact matrix
 liste_mat <- c(data_C_1, data_C_2)
 liste_mat <- data.frame(country = liste_mat)
 
-#### join the two dataframe
+## join the two dataframes
 liste_pays <- inner_join(liste_mat,liste_pays, by="country") %>%
 	mutate(R=NA) 
 
-#### calculate R0 for all countries (146/152 having contact matrix data)
+## calculate R0 for all countries (146/152 having contact matrix data)
 for (i in 1:nrow(liste_pays)){
 	countryname <- liste_pays[i,1] %>% as.character()
-	par <- parameters_SIR_COVID(countryname=countryname, beta = beta, R0 = NULL, gamma = 1/14)
+	par <- parameters_SIR_COVID(countryname=countryname, beta = beta, R0 = NULL, gamma = gamma, age_cl)
 	liste_pays$R[i] <- par$R0
 }
 
-liste_pays <- liste_pays %>% mutate(R0r = R/2.5)
-#### Map R0
+
+#### Map R0 ----
 # load "World" data from package tmap
 data(World) 
 
@@ -180,78 +71,133 @@ df_countries <- read_excel("Country.xlsx")[,1:3] %>%
 	left_join(liste_pays, by=c("country")) 
 
 # plot the map
+tmap_mode("view")
 st_geometry(df_countries) <- df_countries$geometry
-tm_shape(df_countries) +
-	tm_polygons("R0r", breaks = c(0.5,0.9,1.1,1.3,1.5,1.7,1.9,2.3))
+map1 <- tm_shape(df_countries) +
+	tm_polygons("R")
+map1
 
-p # print map
+
 
 ##################################################################################
-# solve the model for selected countries
+# solve the model for selected countries ----
 ##################################################################################
-paramBF <- parameters_SIR_COVID(countryname="Burkina Faso")
-paramFR <- parameters_SIR_COVID("France")
-paramCH <- parameters_SIR_COVID("China")
+countries <- c("Niger", "France", "China", "Germany")
+param_list <- map(countries, parameters_SIR_COVID)
 
 ##################################################################################
 # determine the values of S,I and R at times in vt
 ##################################################################################
-vt = seq(0,350,1)  
+vt = seq(0,600,1)  
 
-# solve models and store reults in a dataframe
-mymodel_results_BF <- lsoda(paramBF$inits, vt, calculate_derivatives, paramBF$vparameters) %>% as.data.frame()
-mymodel_results_FR <- lsoda(paramFR$inits, vt, calculate_derivatives, paramFR$vparameters) %>% as.data.frame()
-mymodel_results_CH <- lsoda(paramCH$inits, vt, calculate_derivatives, paramCH$vparameters) %>% as.data.frame()
+# solve models and store results in a list
 
+mymodel_results <- map(param_list,lsoda2, vt)
 
-##### extract interesting indicators
-# calculate total Number of habitants
-N_BF <- mymodel_results_BF[1,2:17] %>% sum()
-N_FR <- mymodel_results_FR[1,2:17] %>% sum()
-N_CH <- mymodel_results_CH[1,2:17] %>% sum()
+# extract prevalence of infection
+prev.df <- map(mymodel_results, function(x){rowSums(x[,18:33]/sum(x[1,2:17]))}) %>% 
+	unlist() %>% 
+	as.data.frame() %>% 
+	mutate(days= rep(vt, length(countries)), 
+				 Country = rep(countries, each=length(vt)))
 
-# calculate total Number of Infected per day
-I_BF <- mymodel_results_BF[,18:33] %>% rowSums()
-I_FR <- mymodel_results_FR[,18:33] %>% rowSums()
-I_CH <- mymodel_results_CH[,18:33] %>% rowSums()
-
-# calculate total Number of Susceptible per day
-S_BF <- mymodel_results_BF[,2:17] %>% rowSums()
-S_FR <- mymodel_results_FR[,2:17] %>% rowSums()
-S_CH <- mymodel_results_CH[,2:17] %>% rowSums()
-
-# calculate total Number of Susceptible per day
-R_BF <- mymodel_results_BF[,34:49] %>% rowSums()
-R_FR <- mymodel_results_FR[,34:49] %>% rowSums()
-R_CH <- mymodel_results_CH[,34:49] %>% rowSums()
-
-# prevalence per day
-Res_BF <- I_BF / N_BF
-Res_FR <- I_FR / N_FR
-Res_CH <- I_CH / N_CH
+colnames(prev.df)[1]<- "prev"
 
 # plot prevalence of infection (time from the first case)
-prev <- data.frame(BF = Res_BF, FR = Res_FR, CH = Res_CH) %>% mutate(days= vt)
-
-prev %>% gather(1:3, key=Country, value=prev) %>%
-ggplot(aes(x = days, y = prev,  group = Country, color = Country)) +
+p <- ggplot(prev.df,aes(x = days, y = prev,  group = Country, color = Country)) +
 	geom_line()
+
+ggplotly(p)
 
 # plot prevalence of immunised people (recovered)
-recov <- data.frame(BF = R_BF / N_BF, FR = R_FR / N_FR, CH = R_CH / N_CH) %>% mutate(days= vt)
-recov %>% gather(1:3, key=Country, value=recov) %>%
-	ggplot(aes(x = days, y = recov,  group = Country, color = Country)) +
+recov.df <- map(mymodel_results, function(x){rowSums(x[,34:49]/sum(x[1,2:17]))}) %>% unlist() %>% as.data.frame() %>% mutate(days= rep(vt, length(countries)), Country = rep(countries, each=length(vt)))
+colnames(recov.df)[1]<- "recov"
+
+p2 <-	ggplot(recov.df,aes(x = days, y = recov,  group = Country, color = Country)) +
 	geom_line()
+ggplotly(p2)
 
 
 # R0
-paramFR$R0
-paramBF$R0 
-paramCH$R0 
+for (i in 1:length(countries)){
+	cat(countries[i], "R0=", param_list[[i]]$R0, "\n")
+}
+
+#### Figure of contact matrices and age strucure for selected countries ----
+# list of matrix plots (1 per selected country)
+fig_mat <- map(param_list, function(x){
+	C <- x$vparameters$C %>% as.table() %>% as.data.frame()
+	g <- ggplot(C, aes(Var2, Var1, fill= Freq)) + 
+		geom_tile() +
+		scale_fill_gradient(low="white",high="darkblue", limits=c(0,25),guide = FALSE) +
+		labs(y="Age of contact", x="Age of individual") + 
+		theme(axis.text.x = element_text(angle = 90, vjust=0.5))
+		
+
+	return(g)
+})
+
+# list of age distribution plots
+fig_age <- map(param_list, function(x){
+	S <- x$inits[1:16]
+	P <- data.frame(age=age_cl, freq=S / sum(S))
+	P$age <- factor(P$age, levels = P$age) # lock levels order
+	bp <- ggplot(P, aes(x = age, y=freq))+
+		geom_bar(stat = "identity") +
+		ylab("frequency") + xlab("")+
+		theme(axis.text.x = element_blank())
+	return(bp)
+})
+
+# daily number of contact per age classes
+fig_ctc <- map(param_list, function(x){
+	C <- x$vparameters$C %>% as.table() %>% as.data.frame()
+	S <- C %>% group_by(Var1) %>% 
+		summarise(sum = sum(Freq)) %>%
+		mutate(age=Var1)
+	S$age <- factor(S$age, levels = S$age) # lock levels order
+	bp <- ggplot(S, aes(x = age, y=sum))+
+		geom_bar(stat = "identity") +
+		ylim(c(0,45)) +
+		ylab("daily no. of contacts") + xlab("") +
+		theme(axis.text.x = element_blank())
+	return(bp)
+})
+
+# list of list of figures
+list_l_fig <- list(fig_age, fig_ctc, fig_mat)
+
+# expl, multipanel fig
+
+figure_pop <- multi_panel_figure(columns = length(countries), rows = length(list_l_fig))   # create multipanel figure
+
+for (l in 1:length(list_l_fig)){
+	for (i in 1:length(countries)){
+		figure_pop %<>%	fill_panel(list_l_fig[[l]][[i]], col=i, row=l)
+	}	
+}
+
+for (i in 1:length(countries)){
+	figure_pop %<>%	fill_panel(fig_age[[i]], col=i, row=1)
+}	
+
+for (i in 1:length(countries)){
+	figure_pop %<>%	fill_panel(fig_mat[[i]], col=i, row=2)
+}	
+figure_pop
+
+
+fill_panel(Fig2A, column = 1, row = 1:2) %<>%
+	fill_panel(Fig2B, column = 2, row = 1) %<>%
+	fill_panel(Fig2C, column = 3, row = 1) %<>%
+	fill_panel(Fig2D, column = 2, row = 2)
+
+figure2
+
 
 
 ####################################################
-# Estimate R0 from case data in all countries (using the method described in report 1 of ETE team)
+# Estimate R0 from case data in all countries (using the method described in report 1 of ETE team) ----
 ####################################################
 
 library(R0)
