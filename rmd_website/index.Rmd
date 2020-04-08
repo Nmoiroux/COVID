@@ -30,6 +30,7 @@ We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75
 \end{align}  
 *Where $\beta$ is the probability of transmission on contact, $i$ and $j$ are indices for age classes, $\gamma$ is the recovery rate. $C$ is the contact matrix. $N_{j}$ is the population in age $j$.*\
 \
+
 \
 In such a model, the relationship between the basic reproductive number $R_{0}$ and the probability $\beta$ of transmission on contact is given by the following aligns (Towers *et al.* 2012):
 \begin{align}
