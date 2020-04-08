@@ -12,29 +12,42 @@ knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) #set t
 
 ## Introduction
 *"assessing the effectiveness of interventions that specifically target social networks, such as school closure [or lockdown], requires models that explicitly account for such social structure"* (Prem *et al.* 2017).  
-The objective of the present work was to investigate, in absence of any intervention, how much country-specific age distribution and social contact pattern affect the basic reproductive number ($R_{0}$) and the expected spread of the COVID-19 disease. Using an age-structured SIR model, age distribution data and contact matrices, we predicted and mapped $R_{0}$ of 147 countries. We also presents dynamic of the outbreak, as predicted by the model, for some selected countries.  
+The objective of the present work was to investigate, in absence of any intervention, how much country-specific age distribution and social contact pattern affect the basic reproductive number ($R_{0}$) and the expected spread of the COVID-19 disease. Using an age-structured SIR model fed with age distribution data and contact matrices, we predicted and mapped $R_{0}$ for 147 countries. We also present the dynamic of the outbreak, as predicted by the model, for some selected countries.  
 \
 \
 
 ## Methods
 #### The SIR model
-We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75+). The model was adapted from [here](http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/).
-
-![](SIRmod.JPG)
-
+We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75+). It allow to explicitely account for the social structure of the studied population. The model was adapted from [here](http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/).
+\begin{align}
+\frac{dS_{i}}{dt} = -\beta S_{i} \sum_{j} C_{ij} I_{j}/N_{i} (\#eq:1)
+\end{align}
+\begin{align}
+\frac{dI_{i}}{dt} = \beta S_{i} \sum_{j} C_{ij} I_{j}/N_{i} - \gamma I_{i} (\#eq:2)
+\end{align}
+\begin{align}
+\frac{dR_{i}}{dt} = \gamma I_{i} (\#eq:3)
+\end{align}  
 *Where $\beta$ is the probability of transmission on contact, $i$ and $j$ are indices for age classes, $\gamma$ is the recovery rate. $C$ is the contact matrix. $N_{j}$ is the population in age $j$.*\
 \
 \
-In such a model, the relationship between the basic reproductive number $R_{0}$ and the probability $\beta$ of transmission on contact is given by the following equations (Towers *et al.* 2012):
-
-![](R0_beta_equ.JPG)
+In such a model, the relationship between the basic reproductive number $R_{0}$ and the probability $\beta$ of transmission on contact is given by the following aligns (Towers *et al.* 2012):
+\begin{align}
+\beta = \frac{R_{0}}{\gamma}\lambda  
+(\#eq:4)
+\end{align} 
+\begin{align}
+R_{0} = \frac{\beta}{\gamma}\lambda  
+(\#eq:3)
+\end{align} 
 
 *Where $\lambda$ is the largest eigenvalue of the matrix $M$ such as $M_{ij} = C_{ij}f_{i}/f{j}$ with $f_{i}$ and $f_{j}$ are frequencies in the population of age classes $i$ and $j$, respectively.*\
 \
 
 #### Data
 Contact matrices for 152 countries were obtained from the work of [Prem](https://doi.org/10.1371/journal.pcbi.1005697) *et al.* (2017).  
-Data of age structure were obtained from the *Health Nutrition and Population* (HNP) database available on the World Bank [website](https://datacatalog.worldbank.org/dataset/health-nutrition-and-population-statistics).  
+Data of age structure were obtained from the *Health Nutrition and Population* (HNP) database available on the World Bank [website](https://datacatalog.worldbank.org/dataset/health-nutrition-and-population-statistics).
+Age stratified estimates of infection severity were taken from the article by Verity *et al.* (2020) ([Table 1](#Tab1))
 \
 
 #### Model parameters
@@ -50,6 +63,7 @@ We simulated the dynamic of the outbreak (prevalence of infection and prevalence
 \
 
 ## Results
+#### Predicting and mapping $R_{0}$ worldwide
 ```{r}
 #####
 # N MOIROUX : nicolas.moiroux@ird.fr
@@ -87,9 +101,9 @@ beta <- paramFR$vparameters[2] %>% unlist()
 
 ```
 
-Probability $\beta$ of transmission on contact based on an estimated $R_{0}$ of 2.5 in France was estimated to be `r beta`. Using this value of $\beta$, we were able to predict $R_{0}$ in 147 countries (Figure 1) for which both contact matrices and age structure data were available.
-
-
+Probability $\beta$ of transmission on contact based on an estimated $R_{0}$ of 2.5 in France was estimated to be `r beta`. Using this value of $\beta$, we were able to predict $R_{0}$ in 147 countries (Figure [1](#Fig1) for which both contact matrices and age structure data were available.  
+\
+[]{#Fig1}
 ```{r}
 #### Calculate R0 for all countries based on the same probability of transmission on contact (beta)----
 
@@ -136,17 +150,19 @@ map1 <- tm_shape(df_countries) +
 map1
 ```
 
-##### Figure 1: Map of predicted $R_{0}$ for 147 countries in abscence of intervention according to an age-structured SIR model.  
+##### *Figure 1: Map of predicted $R_{0}$ for 147 countries in abscence of intervention according to an age-structured SIR model.*
 *Countries differ only for age distribution of their population and for social contact patterns. Other parameters ($\beta$ and $\gamma$) being equals.***These $R_{0}$ values are prediction of a model, they are not real data**  
 \
 
 Predicted $R_{0}$ ranged from `r round(min(liste_pays$R),2)` in Germany to `r round(max(liste_pays$R),2)` in Niger. 
 Higher values of R0 were found to be in the inter-tropical region.\
 \
-We selected four countries: Niger (higher predicted $R_{0}$), France, China and Germany (lower predicted $R_{0}$). Age distribution and contact matrix for each of these countries are presented in Figure 2:
-\
-\
 
+#### Age distribution and contact characteristics of four selected countries
+We selected four countries: Niger (highest predicted $R_{0}$), France, China and Germany (lowest predicted $R_{0}$). Age distribution and contact matrix for each of these countries are presented in Figure [2](#Fig2).  
+\
+[]{#Fig2}  
+\
 ```{r}
 ##################################################################################
 # solve the model for selected countries ----
@@ -169,7 +185,7 @@ fig_mat <- map(param_list, function(x){
 	C <- x$vparameters$C %>% as.table() %>% as.data.frame()
 	g <- ggplot(C, aes(Var2, Var1, fill= Freq)) + 
 		geom_tile() +
-		scale_fill_gradient(low="white",high="darkblue", limits=c(0,25),guide = FALSE) +
+		scale_fill_gradient(low="white",high="darkblue", limits=c(0,25),guide = FALSE, trans="sqrt") +
 		labs(y="Age of contact", x="Age of individual") + 
 		theme(axis.text.x = element_text(angle = 90, vjust=0.5, color=rep(c(1,0),times=8)))+
 		theme(axis.text.y = element_text(color=rep(c(0,1),times=8)))
@@ -193,12 +209,16 @@ fig_age <- map(param_list, function(x){
 # daily number of contact per age classes
 fig_ctc <- map(param_list, function(x){
 	C <- x$vparameters$C %>% as.table() %>% as.data.frame()
-	S <- C %>% group_by(Var1) %>% 
+	S <- x$inits[1:16]
+	sC <- C %>% group_by(Var1) %>% 
 		summarise(sum = sum(Freq)) %>%
-		mutate(age=Var1)
-	S$age <- factor(S$age, levels = S$age) # lock levels order
-	bp <- ggplot(S, aes(x = age, y=sum))+
+		mutate(age=Var1, pop = S) %>%
+		mutate(tot_ctc = sum * pop)
+	mean <- sum(sC$tot_ctc) / sum(sC$pop)# calculate mean no. of contact per individual
+	sC$age <- factor(sC$age, levels = sC$age) # lock levels order
+	bp <- ggplot(sC, aes(x = age, y=sum))+
 		geom_bar(stat = "identity") +
+		geom_hline(yintercept=mean, linetype="dashed", color = "red") +
 		ylim(c(0,45)) +
 		ylab("daily no. of contacts") + xlab("") +
 		theme(axis.text.x = element_blank())
@@ -220,16 +240,45 @@ for (l in 1:length(list_l_fig)){
 
 figure_pop
 
-
+# mean number of daily contacts in each conties
+av_d_ctc <- map(param_list, function(x){
+	C <- x$vparameters$C %>% as.table() %>% as.data.frame()
+	S <- x$inits[1:16]
+	sC <- C %>% group_by(Var1) %>% 
+		summarise(sum = sum(Freq)) %>%
+		mutate(age=Var1, pop = S) %>%
+		mutate(tot_ctc = sum * pop)
+	mean <- sum(sC$tot_ctc) / sum(sC$pop)
+	return(mean)})
 ```
 
-##### Figure 2: Age distribution, daily number of contacts and contact matrices for Niger (A, E, I), France (B, F, J), China (C, G, K) and Germany (D, H, L).
-*For contact matrix plots, darker color intensities indicate more contacts.*
+##### *Figure 2: Age distribution, daily number of contacts and contact matrices for Niger (A, E, I), France (B, F, J), China (C, G, K) and Germany (D, H, L).*
+*Horizontal red dashed lines indicate the mean number of daily contacts per individuals. For contact matrix plots, darker color intensities indicate more contacts.*  
+\
+\
+Age distribution of Niger is typical of countries with high birth rate and low life expectancy, the size of each cohort is larger than older cohort. In average, individuals in Niger experience `r round(av_d_ctc[[1]], 1)` c.d$^{-1}$ (contacts per days). These contacts occur mostly between individuals of < 20 years old (that represent more than 60% of the total population).  
+Age distribution of France is almost stationnary indicating equal birth rates and death rates. The mean number of daily contact is `r round(av_d_ctc[[2]], 1)` c.d$^{-1}$ mostly with individual of the same age. There is little differences of daily number of contacts among age classes.  
+Age distributions of China and Germany are constrictive, indicating an older population in average. The mean number of daily contact in China was `r round(av_d_ctc[[3]], 1)` c.d$^{-1}$, closed to what is observed in France but with more differences between age classes. Individuals in germany experience the lowest number of daily contact with a mean of `r round(av_d_ctc[[4]], 1)` c.d$^{-1}$.  
 \
 \
 
+#### Outbreak simulation for four selected countries
 
+We then simulated the outbreak in these four countries (Niger, France, China and Germany) using the SIR model. Predicted $R_{0}$ for these countries were as follow:
 
+```{r}
+# R0
+for (i in 1:length(countries)){
+	cat(countries[i], "R0 =", param_list[[i]]$R0, "\n")
+}
+
+```
+*Reminder: $R_{0}$ of France was not predicted but estimated [here](http://alizon.ouvaton.org/Rapport1_R0_France.html#situation_post-confinement) and we used this value to estimate probability $\beta$ of transmission on contact that was used, in turn, to estimate  $R_{0}$ of other countries (see Methods section).*  
+\
+
+Here, we see that higher is the mean number of contact per individuals, higher is $R_{0}$. Higher $R_{0}$ is expected to induce faster outbreaks and a higher proportion of infected (and then immunized) individuals (Figure [3](#Fig3) and [4](#Fig4)).  
+\
+[]{#Fig3}  
 ```{r}
 
 # extract prevalence of infection
@@ -238,35 +287,110 @@ prev.df <- map(mymodel_results, function(x){rowSums(x[,18:33]/sum(x[1,2:17]))}) 
 colnames(prev.df)[1]<- "prev"
 
 # plot prevalence of infection (time from the first case)
-p <- ggplot(prev.df,aes(x = days, y = prev,  group = Country, color = Country)) +
+p <- ggplot(prev.df,aes(x = days, y = prev,  group = Country, linetype = Country, color = Country)) +
 	geom_line()
 
 ggplotly(p)
 ```
 
-##### Figure 3: Dynamic of the prevalence of infection according to an age-structured SIR model for four countries with diferrent age distribution of their population and different contact patterns.
-
+##### *Figure 3: Dynamic of the prevalence of infection according to an age-structured SIR model for four countries with different age distribution of their population and different contact patterns.*
 \
-\
+[]{#Fig4}  
 ```{r}
 # plot prevalence of immunised people (recovered)
 recov.df <- map(mymodel_results, function(x){rowSums(x[,34:49]/sum(x[1,2:17]))}) %>% unlist() %>% as.data.frame() %>% mutate(days= rep(vt, length(countries)), Country = rep(countries, each=length(vt)))
 colnames(recov.df)[1]<- "recov"
 
-p2 <-	ggplot(recov.df,aes(x = days, y = recov,  group = Country, color = Country)) +
+p2 <-	ggplot(recov.df,aes(x = days, y = recov,  group = Country, color = Country, linetype = Country)) +
 	geom_line()
 ggplotly(p2)
 ```
 
-##### Figure 3:
+##### *Figure 4: Dynamic of the prevalence of immunized individuals according to an age-structured SIR model for four countries with different age distribution of their population and different contact patterns.*
+\
 \
 
-R0
+#### Total severe cases and their distribution by ages
 ```{r}
-# R0
-for (i in 1:length(countries)){
-	cat(countries[i], "R0=", param_list[[i]]$R0, "\n")
-}
+#### Severe cases (needing hospitalization) prediction ----
+# data needed
+inf_sev <- c(0, 0.00408, 0.0104, 0.0343, 0.0425, 0.0816, 0.118, 0.166, 0.184) #Proportion of infected individuals hospitalised (Verity et al. 2020)
+age_cl_fat <- c("0_9", "10_19", "20_29", "30_39", "40_49", "50_59", "60_69", "70_79", "80+") # age classes
+time_fat <- 600 # time in days at which cumulated nb of severe case are predicted (need to be in vt)
+
+# plot fatality by age classes
+list_figure_sev <- map2(mymodel_results,countries, function(x,y){
+	v_recov <- x[time_fat,34:49] %>% t() %>% as.vector()
+	v_pop1 <- x[1,2:17] %>% t() %>% as.vector()
+	
+	data_pop <- data_pop_all %>%	filter(`Country Name`==y)
+	v_pop2 <-	data_pop  %>%
+		filter(str_detect(`Indicator Code`,"SP\\.POP\\.[[:digit:]]{2}[[:alnum:]]{2}\\.(FE|MA)$")) %>%
+		separate(`Indicator Code`, c("ind1", "ind2","Age", "Sexe")) %>%
+		group_by(Age) %>%
+		summarise(pop = sum(`2018`)) %>%
+		ungroup() %>% 
+		select(pop) %>%
+		t() %>%
+		as.vector()
+	
+	# calculate recovery rate for age classes 75-79 and 80+ (we assume same infection ratios)
+	pr <- v_recov[16]/v_pop1[16]
+	v_recov[16] <- v_pop2[16]*pr
+	v_recov[17] <- v_pop2[17]*pr
+	
+
+	
+	col_age_cl_fat <- rep(age_cl_fat, each=2)
+	col_age_cl_fat <- col_age_cl_fat[-length(col_age_cl_fat)]
+	
+	df_fat <- data.frame(recov = v_recov, pop = v_pop2, age = col_age_cl_fat)
+	
+	P <- df_fat %>% 
+		group_by(age) %>%
+		summarise(sum_r = sum(recov), sum_p = sum(pop)) %>%
+		mutate(r_sev = inf_sev) %>%
+		mutate(sev = r_sev*sum_r) %>%
+		mutate(p_sev = sev/sum(sev))
+	
+	p_sev_t <- sum(P$sev) / sum(P$sum_p)
+	P$age <- factor(P$age, levels = P$age) # lock levels order
+	bp <- ggplot(P, aes(x = age, y=p_sev))+
+		geom_bar(stat = "identity") +
+		ylab("frequency of severe cases") 
+	return(list(bp, p_sev_t ))
+	
+})
+```
+
+
+We used estimates of infection severity (*i.e.* needing hospitalization) provided by Verity *et al.* (2020) ([Table 1](#Tab1)) to predict overall proportions of the population expected to need hospitalization due to Covid-19 and its distribution by age classes ([Figure 5](#Fig5)).
+[]{#Tab1}  
+```{r results='asis'}
+library(knitr)
+df_IFR <- data.frame(age = age_cl_fat, ISR = round(inf_sev,5)*100)
+kable(df_IFR, col.names = c("Age group", "Proportion of infected individuals hospitalised (%)"), align = 'c', 
+			caption = "Table 1: Proportion of infected individuals needing hospitalization as estimated by Verity et al. 2020")
 
 ```
+
+The proportions of the population that were expected to need an hospitalization were `r round(list_figure_sev[[1]][[2]],3)*100` %, `r round(list_figure_sev[[2]][[2]],3)*100` %, `r round(list_figure_sev[[3]][[2]],3)*100` % and `r round(list_figure_sev[[4]][[2]],3)*100` % in `r countries[1]`, `r countries[2]`, `r countries[3]` and `r countries[4]`, respectively.
+
+Despite a higher proportion of the population that was expected to be infected, Niger was predicted to experience the lower number (in proportion) of severe case among the four studied countries.
+
+
+[]{#Fig5}  
+```{r}
+# plot a multipanel figure
+
+figure_sev <- multi_panel_figure(columns = length(countries), rows = 1)   # create multipanel figure
+
+for (i in 1:length(countries)){
+	figure_sev %<>%	fill_panel(list_figure_sev[[i]][[1]], col=i)
+}	
+
+figure_sev
+```
+
+##### *Figure 5: Distribution of severe cases among age classes during an uncontrolled Covid19 outbreak in Niger (A), France (B), China (C) and Germany (D).*
 

@@ -91,37 +91,7 @@ param_list <- map(countries, parameters_SIR_COVID)
 vt = seq(0,600,1)  
 
 # solve models and store results in a list
-
 mymodel_results <- map(param_list,lsoda2, vt)
-
-# extract prevalence of infection
-prev.df <- map(mymodel_results, function(x){rowSums(x[,18:33]/sum(x[1,2:17]))}) %>% 
-	unlist() %>% 
-	as.data.frame() %>% 
-	mutate(days= rep(vt, length(countries)), 
-				 Country = rep(countries, each=length(vt)))
-
-colnames(prev.df)[1]<- "prev"
-
-# plot prevalence of infection (time from the first case)
-p <- ggplot(prev.df,aes(x = days, y = prev,  group = Country, color = Country)) +
-	geom_line()
-
-ggplotly(p)
-
-# plot prevalence of immunised people (recovered)
-recov.df <- map(mymodel_results, function(x){rowSums(x[,34:49]/sum(x[1,2:17]))}) %>% unlist() %>% as.data.frame() %>% mutate(days= rep(vt, length(countries)), Country = rep(countries, each=length(vt)))
-colnames(recov.df)[1]<- "recov"
-
-p2 <-	ggplot(recov.df,aes(x = days, y = recov,  group = Country, color = Country)) +
-	geom_line()
-ggplotly(p2)
-
-
-# R0
-for (i in 1:length(countries)){
-	cat(countries[i], "R0=", param_list[[i]]$R0, "\n")
-}
 
 #### Figure of contact matrices and age strucure for selected countries ----
 # list of matrix plots (1 per selected country)
@@ -129,12 +99,12 @@ fig_mat <- map(param_list, function(x){
 	C <- x$vparameters$C %>% as.table() %>% as.data.frame()
 	g <- ggplot(C, aes(Var2, Var1, fill= Freq)) + 
 		geom_tile() +
-		scale_fill_gradient(low="white",high="darkblue", limits=c(0,25),guide = FALSE) +
+		scale_fill_gradient(low="white",high="darkblue", limits=c(0,25),guide = FALSE, trans="sqrt") +
 		labs(y="Age of contact", x="Age of individual") + 
 		theme(axis.text.x = element_text(angle = 90, vjust=0.5, color=rep(c(1,0),times=8)))+ 
 		theme(axis.text.y = element_text(color=rep(c(0,1),times=8)))
-		
-
+	
+	
 	return(g)
 })
 
@@ -153,17 +123,33 @@ fig_age <- map(param_list, function(x){
 # daily number of contact per age classes
 fig_ctc <- map(param_list, function(x){
 	C <- x$vparameters$C %>% as.table() %>% as.data.frame()
-	S <- C %>% group_by(Var1) %>% 
+	S <- x$inits[1:16]
+	sC <- C %>% group_by(Var1) %>% 
 		summarise(sum = sum(Freq)) %>%
-		mutate(age=Var1)
-	S$age <- factor(S$age, levels = S$age) # lock levels order
-	bp <- ggplot(S, aes(x = age, y=sum))+
+		mutate(age=Var1, pop = S) %>%
+		mutate(tot_ctc = sum * pop)
+	mean <- sum(sC$tot_ctc) / sum(sC$pop)# calculate mean no. of contact per individual
+	sC$age <- factor(sC$age, levels = sC$age) # lock levels order
+	bp <- ggplot(sC, aes(x = age, y=sum))+
 		geom_bar(stat = "identity") +
+		geom_hline(yintercept=mean, linetype="dashed", color = "red") +
 		ylim(c(0,45)) +
 		ylab("daily no. of contacts") + xlab("") +
 		theme(axis.text.x = element_blank())
 	return(bp)
 })
+
+# mean number of daily contacts in each conties
+av_d_ctc <- map(param_list, function(x){
+	C <- x$vparameters$C %>% as.table() %>% as.data.frame()
+	S <- x$inits[1:16]
+	sC <- C %>% group_by(Var1) %>% 
+		summarise(sum = sum(Freq)) %>%
+		mutate(age=Var1, pop = S) %>%
+		mutate(tot_ctc = sum * pop)
+	mean <- sum(sC$tot_ctc) / sum(sC$pop)
+	return(mean)})
+
 
 # list of list of figures
 list_l_fig <- list(fig_age, fig_ctc, fig_mat)
@@ -183,6 +169,96 @@ figure_pop
 
 
 
+#### extract prevalence of infection----
+prev.df <- map(mymodel_results, function(x){rowSums(x[,18:33]/sum(x[1,2:17]))}) %>% 
+	unlist() %>% 
+	as.data.frame() %>% 
+	mutate(days= rep(vt, length(countries)), 
+				 Country = rep(countries, each=length(vt)))
+
+colnames(prev.df)[1]<- "prev"
+
+# plot prevalence of infection (time from the first case)
+p <- ggplot(prev.df,aes(x = days, y = prev,  group = Country, linetype = Country, color = Country)) +
+	geom_line()
+
+ggplotly(p)
+
+#### plot prevalence of immunised people (recovered)----
+recov.df <- map(mymodel_results, function(x){rowSums(x[,34:49]/sum(x[1,2:17]))}) %>% unlist() %>% as.data.frame() %>% mutate(days= rep(vt, length(countries)), Country = rep(countries, each=length(vt)))
+colnames(recov.df)[1]<- "recov"
+
+p2 <-	ggplot(recov.df,aes(x = days, y = recov,  group = Country, linetype = Country, color = Country)) +
+	geom_line()
+ggplotly(p2)
+
+
+
+
+
+#### Severe cases (needing hospitalization) prediction ----
+# data needed
+inf_sev <- c(0, 0.00408, 0.0104, 0.0343, 0.0425, 0.0816, 0.118, 0.166, 0.184) #Proportion of infected individuals hospitalised (Verity et al. 2020)
+age_cl_fat <- c("0_9", "10_19", "20_29", "30_39", "40_49", "50_59", "60_69", "70_79", "80+") # age classes
+time_fat <- 600 # time in days at which cumulated nb of severe case are predicted (need to be in vt)
+
+# plot fatality by age classes
+list_figure_sev <- map2(mymodel_results,countries, function(x,y){
+	v_recov <- x[time_fat,34:49] %>% t() %>% as.vector()
+	v_pop1 <- x[1,2:17] %>% t() %>% as.vector()
+	
+	data_pop <- data_pop_all %>%	filter(`Country Name`==y)
+	v_pop2 <-	data_pop  %>%
+		filter(str_detect(`Indicator Code`,"SP\\.POP\\.[[:digit:]]{2}[[:alnum:]]{2}\\.(FE|MA)$")) %>%
+		separate(`Indicator Code`, c("ind1", "ind2","Age", "Sexe")) %>%
+		group_by(Age) %>%
+		summarise(pop = sum(`2018`)) %>%
+		ungroup() %>% 
+		select(pop) %>%
+		t() %>%
+		as.vector()
+	
+	# calculate recovery rate for age classes 75-79 and 80+ (we assume same infection ratios)
+	pr <- v_recov[16]/v_pop1[16]
+	v_recov[16] <- v_pop2[16]*pr
+	v_recov[17] <- v_pop2[17]*pr
+	
+
+	
+	col_age_cl_fat <- rep(age_cl_fat, each=2)
+	col_age_cl_fat <- col_age_cl_fat[-length(col_age_cl_fat)]
+	
+	df_fat <- data.frame(recov = v_recov, pop = v_pop2, age = col_age_cl_fat)
+	
+	P <- df_fat %>% 
+		group_by(age) %>%
+		summarise(sum_r = sum(recov), sum_p = sum(pop)) %>%
+		mutate(r_sev = inf_fatal) %>%
+		mutate(sev = r_sev*sum_r) %>%
+		mutate(p_sev = sev/sum(sev))
+	
+	p_sev_t <- sum(P$sev) / sum(P$sum_p)
+	P$age <- factor(P$age, levels = P$age) # lock levels order
+	bp <- ggplot(P, aes(x = age, y=p_sev))+
+		geom_bar(stat = "identity") +
+		ylab("frequency of severe cases") 
+	return(list(bp, p_sev_t ))
+	
+})
+
+# plot a multipanel figure
+
+figure_sev <- multi_panel_figure(columns = length(countries), rows = 1)   # create multipanel figure
+
+
+for (i in 1:length(countries)){
+	figure_sev %<>%	fill_panel(list_figure_sev[[i]][[1]], col=i)
+}	
+
+
+figure_sev
+
+list_figure_fat[[4]][[2]]
 
 
 ####################################################
