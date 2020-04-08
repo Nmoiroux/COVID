@@ -1,5 +1,5 @@
 ---
-title: "Effect of age distributions and social contact patterns on the Covid19 outbreak: predictions for 147 countries"
+title: "Theoritical effect of countries' population age distribution and social contact pattern on an uncontrolled Covid19 epidemic"
 author: "Nicolas Moiroux, Paul Taconet (MIVEGEC, Univ. Montpellier, CNRS, IRD)"
 date: "07/04/2020"
 output: html_document
@@ -12,7 +12,7 @@ knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) #set t
 
 ## Introduction
 *"assessing the effectiveness of interventions that specifically target social networks, such as school closure [or lockdown], requires models that explicitly account for such social structure"* (Prem *et al.* 2017).  
-The objective of the present work was to investigate, in absence of any intervention, how much country-specific age distribution and social contact pattern affect the basic reproductive number ($R_{0}$) and the expected spread of the COVID-19 disease. Using an age-structured SIR model fed with age distribution data and contact matrices, we predicted and mapped $R_{0}$ for 147 countries. We also present the dynamic of the outbreak, as predicted by the model, for some selected countries.  
+The objective of the present work was to investigate, in absence of any intervention, how much country-specific age distribution and social contact pattern affect the basic reproductive number ($R_{0}$) and the expected spread of the COVID-19 disease. Using an age-structured SIR model fed with age distribution data and contact matrices, we predicted and mapped $R_{0}$ for 147 countries. We also present the dynamic of the outbreak and age distribution of hospitalization, as predicted by the model, for some selected countries.  
 \
 \
 
@@ -52,7 +52,7 @@ All analyses were performed using the software R.
 The code for the model was adapted from [here](http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/) to be used with more than 2 age classes.
 \
 We calculated $R_{0}$ for all countries having both contact matrix and age structure data available. We used *Expression 5* for this task using the value of $\beta$ calculated for France (see *Model Parameter paragraph*). Predicted $R_{0}$ for 147 countries were mapped using additional R packages sf and plotly.\
-We simulated the dynamic of the outbreak (prevalence of infection and prevalence of immunization in the population) for 4 selected countries: France, Germany, China and Niger. \
+We simulated the dynamic of the outbreak (prevalence of infection and prevalence of immunization in the population) for 4 selected countries: France, Germany, China and Niger. For this task, we introduced in the model an infected individual in the 60-64 age group. \
 We used age stratified proportion of severe infections to predict the age distribution of severe cases.\
 Data and codes are available online at [guithub](https://github.com/Nmoiroux/COVID).
 \
@@ -353,7 +353,8 @@ list_figure_sev <- map2(mymodel_results,countries, function(x,y){
 	P$age <- factor(P$age, levels = P$age) # lock levels order
 	bp <- ggplot(P, aes(x = age, y=p_sev))+
 		geom_bar(stat = "identity") +
-		ylab("frequency of severe cases") 
+		labs(y="frequency", x="Age") + 
+		theme(axis.text.x = element_text(angle = 90, vjust=0.5, color=rep(c(1,0),times=8)))
 	return(list(bp, p_sev_t ))
 	
 })
@@ -364,7 +365,7 @@ We used estimates of infection severity (*i.e.* needing hospitalization) provide
 
 The proportions of the population that were expected to need an hospitalization were `r round(list_figure_sev[[1]][[2]],3)*100` %, `r round(list_figure_sev[[2]][[2]],3)*100` %, `r round(list_figure_sev[[3]][[2]],3)*100` % and `r round(list_figure_sev[[4]][[2]],3)*100` % in `r countries[1]`, `r countries[2]`, `r countries[3]` and `r countries[4]`, respectively.
 
-Despite a higher proportion of the population that was expected to be infected, Niger was predicted to experience the lower number (in proportion) of severe case among the four studied countries.
+Despite a higher proportion of the population that was expected to be infected, Niger was predicted to experience the lower number (in proportion) of severe case among the four studied countries. However, the median age for severe cases is expected to fall in the 40-50 age group wherehas it is expected to be in the 50-60 age group for Germany and China. In France, the median age for severe cases is expected to fall in the 60-70 age group.
 
 
 []{#Fig5}  
@@ -382,3 +383,9 @@ figure_sev
 
 ##### *Figure 5: Expected age distribution of severe cases during an uncontrolled Covid19 outbreak for Niger (A), France (B), China (C) and Germany (D).*
 
+## References
+Prem K, Cook AR, Jit M. Projecting social contact matrices in 152 countries using contact surveys and demographic data. PLOS Computational Biology. 12 sept 2017;13(9):e1005697.  
+\
+Towers S, Feng Z. Social contact patterns and control strategies for influenza in the elderly. Math Biosci. déc 2012;240(2):241‑9. 
+\
+Verity R, Okell LC, Dorigatti I, Winskill P, Whittaker C, Imai N, et al. Estimates of the severity of coronavirus disease 2019: a model-based analysis. Lancet Infect Dis. 30 mars 2020.  

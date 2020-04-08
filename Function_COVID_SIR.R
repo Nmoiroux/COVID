@@ -113,7 +113,7 @@ parameters_SIR_COVID <- function(countryname, beta = 0.01270518, R0 = NULL, gamm
 	
 	# initial population (N individuals in each compartment and age classe)
 	I_0    = rep(0,nage) # vector of Infected
-	I_0[13] <- 1				 # put one infected person in 60-64 age classe
+	I_0[9] <- 1				 # put one infected person in 60-64 age classe
 	S_0    = N-I_0				# vector of Susceptible
 	R_0    = rep(0,nage) # vector of Recovered
 	

@@ -233,11 +233,12 @@ list_figure_sev <- map2(mymodel_results,countries, function(x,y){
 	P <- df_fat %>% 
 		group_by(age) %>%
 		summarise(sum_r = sum(recov), sum_p = sum(pop)) %>%
-		mutate(r_sev = inf_fatal) %>%
+		mutate(r_sev = inf_sev) %>%
 		mutate(sev = r_sev*sum_r) %>%
 		mutate(p_sev = sev/sum(sev))
 	
 	p_sev_t <- sum(P$sev) / sum(P$sum_p)
+	print(cumsum(P$p_sev))
 	P$age <- factor(P$age, levels = P$age) # lock levels order
 	bp <- ggplot(P, aes(x = age, y=p_sev))+
 		geom_bar(stat = "identity") +
