@@ -18,7 +18,7 @@ The objective of the present work was to investigate, in absence of any interven
 
 ## Methods
 #### The SIR model
-We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75+). It allow to explicitely account for the social structure of the studied population. The model was adapted from [here](http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/).
+We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75+). It allow to explicitely account for the social structure of the studied population. 
 \begin{align}
 \frac{dS_{i}}{dt} = -\beta S_{i} \sum_{j} C_{ij} I_{j}/N_{i} 
 \end{align}
@@ -30,34 +30,31 @@ We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75
 \end{align}  
 *Where $\beta$ is the probability of transmission on contact, $i$ and $j$ are indices for age classes, $\gamma$ is the recovery rate. $C$ is the contact matrix. $N_{j}$ is the population in age $j$.*\
 \
-
-\
-In such a model, the relationship between the basic reproductive number $R_{0}$ and the probability $\beta$ of transmission on contact is given by the following aligns (Towers *et al.* 2012):
-\begin{align}
-\beta = \frac{R_{0}}{\gamma}\lambda  
-\end{align} 
-\begin{align}
-R_{0} = \frac{\beta}{\gamma}\lambda  
-\end{align} 
-
-*Where $\lambda$ is the largest eigenvalue of the matrix $M$ such as $M_{ij} = C_{ij}f_{i}/f{j}$ with $f_{i}$ and $f_{j}$ are frequencies in the population of age classes $i$ and $j$, respectively.*\
 \
 
 #### Data
 Contact matrices for 152 countries were obtained from the work of [Prem](https://doi.org/10.1371/journal.pcbi.1005697) *et al.* (2017).  
 Data of age structure were obtained from the *Health Nutrition and Population* (HNP) database available on the World Bank [website](https://datacatalog.worldbank.org/dataset/health-nutrition-and-population-statistics).
-Age stratified estimates of infection severity were taken from the article by Verity *et al.* (2020) ([Table 1](#Tab1))
-\
+Age stratified estimates of infection severity were taken from the article by Verity *et al.* (2020).
+
 
 #### Model parameters
-From an [estimated $R_{0}$](http://alizon.ouvaton.org/Rapport1_R0_France.html#situation_post-confinement) of 2.5 in France, we estimated parameter $\beta$ (probability of transmission on contact) using *Expression 4*. Parameter $\gamma$ (recovery rate) was set to 1/11 days$^{-1}$ that correspond to the mean duration of infectiousness of infected individuals (ref).  
+From an [estimated $R_{0}$](http://alizon.ouvaton.org/Rapport1_R0_France.html#situation_post-confinement) of 2.5 for France, we estimated parameter $\beta$ (probability of transmission on contact) using the following equality that was found for age structured SIR models (Towers *et al.* 2012):
+\begin{align}
+\beta = \frac{R_{0}}{\gamma}\lambda  
+\end{align} 
+*Where $\lambda$ is the largest eigenvalue of the matrix $M$ such as $M_{ij} = C_{ij}f_{i}/f{j}$ with $f_{i}$ and $f_{j}$ are frequencies in the population of age classes $i$ and $j$, respectively.*\
+Parameter $\gamma$ (recovery rate) was set to 1/11 days$^{-1}$ that correspond to the mean duration of infectiousness of infected individuals (ref).  
 \
 
 #### Analyses
-All analyses were done using the software R.
+All analyses were performed using the software R.
+The code for the model was adapted from [here](http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/) to be used with more than 2 age classes.
 \
 We calculated $R_{0}$ for all countries having both contact matrix and age structure data available. We used *Expression 5* for this task using the value of $\beta$ calculated for France (see *Model Parameter paragraph*). Predicted $R_{0}$ for 147 countries were mapped using additional R packages sf and plotly.\
-We simulated the dynamic of the outbreak (prevalence of infection and prevalence of immunization in the population) for 4 selected countries: France, Germany, China and Niger.  
+We simulated the dynamic of the outbreak (prevalence of infection and prevalence of immunization in the population) for 4 selected countries: France, Germany, China and Niger. \
+We used age stratified proportion of severe infections to predict the age distribution of severe cases.\
+Data and codes are available online at [guithub](https://github.com/Nmoiroux/COVID).
 \
 \
 
@@ -93,7 +90,7 @@ age_cl <- c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", 
 
 #### how much is beta (probability of transmission on contact) for France giving an R0 of 2,5 (as calculated by ETE team) and a gamma (recovery rate) of 11 days-1 ----
 #
-gamma <- 1/11
+gamma <- 1/14
 paramFR <- parameters_SIR_COVID("France", beta = NULL, R0 = 2.5, gamma = gamma, age_cl)
 # ignore warnings
 beta <- paramFR$vparameters[2] %>% unlist()
@@ -363,15 +360,7 @@ list_figure_sev <- map2(mymodel_results,countries, function(x,y){
 ```
 
 
-We used estimates of infection severity (*i.e.* needing hospitalization) provided by Verity *et al.* (2020) ([Table 1](#Tab1)) to predict overall proportions of the population expected to need hospitalization due to Covid-19 and its distribution by age classes ([Figure 5](#Fig5)).
-[]{#Tab1}  
-```{r results='asis'}
-library(knitr)
-df_IFR <- data.frame(age = age_cl_fat, ISR = round(inf_sev,5)*100)
-kable(df_IFR, col.names = c("Age group", "Proportion of infected individuals hospitalised (%)"), align = 'c', 
-			caption = "Table 1: Proportion of infected individuals needing hospitalization as estimated by Verity et al. 2020")
-
-```
+We used estimates of infection severity (*i.e.* needing hospitalization) provided by Verity *et al.* (2020) ([Table 1](#Tab1)) to predict overall proportions of the population expected to need hospitalization due to Covid-19 and its age distribution ([Figure 5](#Fig5)).
 
 The proportions of the population that were expected to need an hospitalization were `r round(list_figure_sev[[1]][[2]],3)*100` %, `r round(list_figure_sev[[2]][[2]],3)*100` %, `r round(list_figure_sev[[3]][[2]],3)*100` % and `r round(list_figure_sev[[4]][[2]],3)*100` % in `r countries[1]`, `r countries[2]`, `r countries[3]` and `r countries[4]`, respectively.
 
@@ -391,5 +380,5 @@ for (i in 1:length(countries)){
 figure_sev
 ```
 
-##### *Figure 5: Distribution of severe cases among age classes during an uncontrolled Covid19 outbreak in Niger (A), France (B), China (C) and Germany (D).*
+##### *Figure 5: Expected age distribution of severe cases during an uncontrolled Covid19 outbreak for Niger (A), France (B), China (C) and Germany (D).*
 
