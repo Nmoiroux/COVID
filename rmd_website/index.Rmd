@@ -20,13 +20,13 @@ The objective of the present work was to investigate, in absence of any interven
 #### The SIR model
 We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75+). It allow to explicitely account for the social structure of the studied population. The model was adapted from [here](http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/).
 \begin{align}
-\frac{dS_{i}}{dt} = -\beta S_{i} \sum_{j} C_{ij} I_{j}/N_{i} (\#eq:1)
+\frac{dS_{i}}{dt} = -\beta S_{i} \sum_{j} C_{ij} I_{j}/N_{i} 
 \end{align}
 \begin{align}
-\frac{dI_{i}}{dt} = \beta S_{i} \sum_{j} C_{ij} I_{j}/N_{i} - \gamma I_{i} (\#eq:2)
+\frac{dI_{i}}{dt} = \beta S_{i} \sum_{j} C_{ij} I_{j}/N_{i} - \gamma I_{i} 
 \end{align}
 \begin{align}
-\frac{dR_{i}}{dt} = \gamma I_{i} (\#eq:3)
+\frac{dR_{i}}{dt} = \gamma I_{i} 
 \end{align}  
 *Where $\beta$ is the probability of transmission on contact, $i$ and $j$ are indices for age classes, $\gamma$ is the recovery rate. $C$ is the contact matrix. $N_{j}$ is the population in age $j$.*\
 \
@@ -34,11 +34,9 @@ We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75
 In such a model, the relationship between the basic reproductive number $R_{0}$ and the probability $\beta$ of transmission on contact is given by the following aligns (Towers *et al.* 2012):
 \begin{align}
 \beta = \frac{R_{0}}{\gamma}\lambda  
-(\#eq:4)
 \end{align} 
 \begin{align}
 R_{0} = \frac{\beta}{\gamma}\lambda  
-(\#eq:3)
 \end{align} 
 
 *Where $\lambda$ is the largest eigenvalue of the matrix $M$ such as $M_{ij} = C_{ij}f_{i}/f{j}$ with $f_{i}$ and $f_{j}$ are frequencies in the population of age classes $i$ and $j$, respectively.*\
