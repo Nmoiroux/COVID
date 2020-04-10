@@ -16,11 +16,12 @@ source("R/Function_COVID_SIR.R")
 ### dataframe with age structure (World bank)
 data_pop_all <- read_excel("data/HNP_StatsEXCEL.xlsx") %>% as.data.frame() # data from World Bank
 
-### contact matrices data from https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005697
+### contact matrices data from https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005697 
+# (some sheet names (country) of the oricinal data have been modified to fit with data used for mapping)
 data_C_1 <- excel_sheets("data/MUestimates_all_locations_1.xlsx") 
 data_C_2 <- excel_sheets("data/MUestimates_all_locations_2.xlsx")
 
-### age classes (from matrix), used to rename rox- and col-names of the matrices
+### age classes (from matrix), used to rename row- and col-names of the matrices
 age_cl <- c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75+")
 
 

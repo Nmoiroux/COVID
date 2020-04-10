@@ -1,6 +1,6 @@
 ---
-title: "Theoritical effect of countries' population age distribution and social contact pattern on an uncontrolled Covid19 epidemic"
-author: 'Nicolas Moiroux (MIVEGEC, Univ. Montpellier, CNRS, IRD)'
+title: "Theoretical effect of countries' population age distribution and social contact pattern on an uncontrolled Covid19 epidemic"
+author: 'Nicolas Moiroux and Paul Taconet (MIVEGEC, Univ. Montpellier, CNRS, IRD)'
 date: '`r format(Sys.Date(), "%d %B %Y")`'
 output: html_document
 ---
@@ -14,6 +14,9 @@ knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) #set t
 ```{r}
 source("R/Code_Age_Contact_Covid.R")
 ```
+This work is for an academic purpose and should not constitute a decision making support. We used a model that is simple in its structure and its assumptions. The results do not necessarly reflect the reality. Its purpose is to illustrate how social structure and age distribution might affect the dynamic and public health consequences of an outbreak.
+\
+\
 
 ## Introduction
 *"assessing the effectiveness of interventions that specifically target social networks, such as school closure [or lockdown], requires models that explicitly account for such social structure"* (Prem *et al.* 2017).  
@@ -23,7 +26,7 @@ The objective of the present work was to investigate, in absence of any interven
 
 ## Methods
 #### The SIR model
-We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75+). It allow to explicitely account for the social structure of the studied population. 
+We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75+). It allow to explicitly account for the social structure of the studied population. 
 \begin{align}
 \frac{dS_{i}}{dt} = -\beta S_{i} \sum_{j} C_{ij} I_{j}/N_{i} 
 \end{align}
@@ -72,7 +75,7 @@ Probability $\beta$ of transmission on contact based on an estimated $R_{0}$ of 
 map1
 ```
 
-##### *Figure 1: Map of predicted $R_{0}$ for 147 countries in abscence of intervention according to an age-structured SIR model.*
+##### *Figure 1: Map of predicted $R_{0}$ for 147 countries in absence of intervention according to an age-structured SIR model.*
 *Countries differ only for age distribution of their population and for social contact patterns. Other parameters ($\beta$ and $\gamma$) being equals.***These $R_{0}$ values are prediction of a model, they are not real data**  
 \
 
@@ -94,13 +97,13 @@ figure_pop
 *Horizontal red dashed lines indicate the mean number of daily contacts per individuals. For contact matrix plots, darker color intensities indicate more contacts. Data from [here](https://doi.org/10.1371/journal.pcbi.1005697) and [here](https://datacatalog.worldbank.org/dataset/health-nutrition-and-population-statistics).*  
 \
 \
-Age distribution of Niger is typical of countries with high birth rate and low life expectancy, the size of each cohort is larger than older cohort. In average, individuals in Niger experience `r round(av_d_ctc[[1]], 1)` c.d$^{-1}$ (contacts per days). These contacts occur mostly between individuals of < 20 years old (that represent more than 60% of the total population).  
-Age distribution of France is almost stationnary indicating equal birth rates and death rates. The mean number of daily contact is `r round(av_d_ctc[[2]], 1)` c.d$^{-1}$ mostly with individual of the same age. There is little differences of daily number of contacts among age classes.  
-Age distributions of China and Germany are constrictive, indicating an older population in average. The mean number of daily contact in China was `r round(av_d_ctc[[3]], 1)` c.d$^{-1}$, closed to what is observed in France but with more differences between age classes. Individuals in germany experience the lowest number of daily contact with a mean of `r round(av_d_ctc[[4]], 1)` c.d$^{-1}$.  
+Age distribution of Niger is typical of countries with high birth rate and low life expectancy, the size of each cohort is larger than that of older cohorts. In average, individuals in Niger experience `r round(av_d_ctc[[1]], 1)` c.d$^{-1}$ (contacts per days). These contacts occur mostly between individuals of < 20 years old (that represent more than 60% of the total population).  
+Age distribution of France is almost stationary indicating equal birth and death rates. The mean number of daily contact is `r round(av_d_ctc[[2]], 1)` c.d$^{-1}$ mostly with individual of the same age. There is little differences of daily number of contacts among age classes.  
+Age distributions of China and Germany are constrictive, indicating an older population in average. The mean number of daily contact in China was `r round(av_d_ctc[[3]], 1)` c.d$^{-1}$, closed to what is observed in France but with more differences between age classes. Individuals in Germany experience the lowest number of daily contact with a mean of `r round(av_d_ctc[[4]], 1)` c.d$^{-1}$.  
 \
 \
 
-#### Outbreak simulation for Niger, France, China and germany
+#### Outbreak simulation for Niger, France, China and Germany
 
 We then simulated the outbreak in these four countries (Niger, France, China and Germany) using the SIR model. Predicted $R_{0}$ for these countries were as follow:
 
@@ -149,7 +152,7 @@ figure_sev
 ##### *Figure 5: Expected age distribution of severe cases during an uncontrolled Covid19 outbreak for Niger (A), France (B), China (C) and Germany (D).*
 \
 \
-Despite a higher proportion of the population that was expected to be infected, Niger was predicted to experience the lower number (in proportion) of severe case among the four studied countries. However, the median age for severe cases is expected to fall in the 40-50 age group wherehas it is expected to be in the 50-60 age group for Germany and China. In France, the median age for severe cases is expected to fall in the 60-70 age group.
+Despite a higher proportion of the population expected to be infected, Niger was predicted to experience the lower number (in proportion) of severe case among the four studied countries. However, the median age for severe cases is expected to fall in the 40-50 age group whereas it is expected to be in the 50-60 age group for Germany and China. In France, the median age for severe cases is expected to fall in the 60-70 age group.
 \
 \
 
