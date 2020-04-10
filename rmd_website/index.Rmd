@@ -16,12 +16,12 @@ knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) #set t
 ```{r}
 source("R/Code_Age_Contact_Covid.R")
 ```
-This work is for an academic and research purpose and should not constitute a decision making support. We used a model that is simple in its structure and its assumptions. The results do not necessarly reflect the reality. Its purpose is to illustrate how social structure and age distribution might affect the dynamic and public health consequences of an outbreak.
+This work is for an academic and research purpose and should not constitute a decision making support. We used a model that is simple in its structure and its assumptions. The results do not necessarily reflect the reality. Its purpose is to illustrate how social structure and age distribution might affect the dynamic and public health consequences of an outbreak.
 \
 \
 
 ## Introduction
-*"assessing the effectiveness of interventions that specifically target social networks, such as school closure [or lockdown], requires models that explicitly account for such social structure"* (Prem *et al.* 2017).  
+*"assessing the effectiveness of interventions that specifically target social networks, such as school closure [or lock-down], requires models that explicitly account for such social structure"* (Prem *et al.* 2017).  
 The objective of the present work was to investigate, in absence of any intervention, how much country-specific age distribution and social contact pattern affect the basic reproduction number ($R_{0}$) and the expected spread of the COVID-19 disease. Using an age-structured SIR model fed with age distribution data and contact matrices, we predicted and mapped $R_{0}$ for 147 countries. We also present the dynamic of the outbreak and age distribution of hospitalization, as predicted by the model, for four selected countries.  
 \
 \
