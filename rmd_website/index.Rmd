@@ -1,7 +1,7 @@
 ---
 title: "Theoretical effect of countries' population age distribution and social contact pattern on an uncontrolled Covid19 epidemic"
 author: 'Nicolas Moiroux and Paul Taconet (MIVEGEC, Univ. Montpellier, CNRS, IRD)'
-date: '`r format(Sys.Date(), "%d %B %Y")`'
+date: '30 March 2020, updated on `r format(Sys.Date(), "%d %B %Y")`'
 output: html_document
 ---
 
@@ -14,13 +14,13 @@ knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) #set t
 ```{r}
 source("R/Code_Age_Contact_Covid.R")
 ```
-This work is for an academic purpose and should not constitute a decision making support. We used a model that is simple in its structure and its assumptions. The results do not necessarly reflect the reality. Its purpose is to illustrate how social structure and age distribution might affect the dynamic and public health consequences of an outbreak.
+This work is for an academic and research purpose and should not constitute a decision making support. We used a model that is simple in its structure and its assumptions. The results do not necessarly reflect the reality. Its purpose is to illustrate how social structure and age distribution might affect the dynamic and public health consequences of an outbreak.
 \
 \
 
 ## Introduction
 *"assessing the effectiveness of interventions that specifically target social networks, such as school closure [or lockdown], requires models that explicitly account for such social structure"* (Prem *et al.* 2017).  
-The objective of the present work was to investigate, in absence of any intervention, how much country-specific age distribution and social contact pattern affect the basic reproductive number ($R_{0}$) and the expected spread of the COVID-19 disease. Using an age-structured SIR model fed with age distribution data and contact matrices, we predicted and mapped $R_{0}$ for 147 countries. We also present the dynamic of the outbreak and age distribution of hospitalization, as predicted by the model, for four selected countries.  
+The objective of the present work was to investigate, in absence of any intervention, how much country-specific age distribution and social contact pattern affect the basic reproduction number ($R_{0}$) and the expected spread of the COVID-19 disease. Using an age-structured SIR model fed with age distribution data and contact matrices, we predicted and mapped $R_{0}$ for 147 countries. We also present the dynamic of the outbreak and age distribution of hospitalization, as predicted by the model, for four selected countries.  
 \
 \
 
@@ -44,10 +44,10 @@ We used an age-structured SIR model with 16 age classes (0-4; 5-9; 10-14; ... 75
 Contact matrices for 152 countries were obtained from the work of [Prem](https://doi.org/10.1371/journal.pcbi.1005697) *et al.* (2017).  
 Data of age structure were obtained from the *Health Nutrition and Population* (HNP) database available on the World Bank [website](https://datacatalog.worldbank.org/dataset/health-nutrition-and-population-statistics).
 Age stratified estimates of infection severity were taken from the article of Verity *et al.* (2020).
-
+\
 
 #### Model parameters
-From an [estimated $R_{0}$](http://alizon.ouvaton.org/Rapport1_R0_France.html#situation_post-confinement) of 2.5 for France, we estimated parameter $\beta$ (probability of transmission on contact) using the following equality that was found for age structured SIR models (Towers *et al.* 2012):
+From an estimated $R_{0}$ of 2.5 for France ([ETE modelling team, 2020](http://alizon.ouvaton.org/Rapport1_R0_France.html#situation_post-confinement)), we estimated parameter $\beta$ (probability of transmission on contact) using the following equality (Towers *et al.* 2012):
 \begin{align}
 \beta = \frac{R_{0}}{\gamma}\lambda  
 \end{align} 
@@ -157,9 +157,42 @@ Despite a higher proportion of the population expected to be infected, Niger was
 \
 
 ## References
-Prem K, Cook AR, Jit M. Projecting social contact matrices in 152 countries using contact surveys and demographic data. *PLOS Computational Biology*. 12 sept 2017;13(9):e1005697.  
+Prem K, Cook AR, Jit M. Projecting social contact matrices in 152 countries using contact surveys and demographic data. *PLOS Computational Biology*. 12 sep 2017;13(9):e1005697.  
 \
-Towers S, Feng Z. Social contact patterns and control strategies for influenza in the elderly. *Math Biosci*. déc 2012;240(2):241‑9
+Towers S, Feng Z. Social contact patterns and control strategies for influenza in the elderly. *Math Biosci*. dec 2012;240(2):241‑9.  
+\
+Verity R, Okell LC, Dorigatti I, Winskill P, Whittaker C, Imai N, et al. Estimates of the severity of coronavirus disease 2019: a model-based analysis. *Lancet Infect Dis*. 30 mar 2020.  
+\
+ETE modelling team. Estimating the basic reproduction number of the COVID-19 epidemic in France. http://alizon.ouvaton.org/Report1_R0_France.html. 14 mar 2020.  
 \
 \
-Verity R, Okell LC, Dorigatti I, Winskill P, Whittaker C, Imai N, et al. Estimates of the severity of coronavirus disease 2019: a model-based analysis. *Lancet Infect Dis*. 30 mars 2020.  
+
+### References of R packages used in this work  
+Soetaert K, Petzoldt T, Setzer RW (2010). “Solving Differential Equations in R: Package deSolve.” *Journal of Statistical Software*,
+33(9), 1-25. ISSN 1548-7660, http://doi.org/10.18637/jss.v033.i09).
+\
+\
+Grolemund G, Wickham H (2011). “Dates and Times Made Easy with lubridate.” *Journal of Statistical Software*, 40(3), 1-25. 
+http://www.jstatsoft.org/v40/i03/
+\
+\
+Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller
+E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to
+the tidyverse.” *Journal of Open Source Software*, 4(43), 1686. http://doi.org/10.21105/joss.01686.
+\
+\
+Wickham H, Bryan J (2019). readxl: Read Excel Files. R package version 1.3.1, https://CRAN.R-project.org/package=readxl.
+\
+\
+Tennekes M (2018). “tmap: Thematic Maps in R.” *Journal of Statistical Software*, 84(6), 1-39. http://doi.org/10.18637/jss.v084.i06.
+\
+\
+Pebesma E (2018). “Simple Features for R: Standardized Support for Spatial Vector Data.” *The R Journal*, 10(1), 439-446. http://doi.org/10.32614/RJ-2018-009.
+\
+\
+Sievert C (2018). plotly for R. https://plotly-r.com.
+\
+\
+Graumann J, Cotton R (2018). “multipanelfigure: Simple Assembly of Multiple Plots and Images into a Compound Figure.” *Journal of Statistical Software*,  84(3), 1-10. http://doi.org/10.18637/jss.v084.c03.
+
+
