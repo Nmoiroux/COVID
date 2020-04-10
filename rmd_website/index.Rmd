@@ -61,7 +61,7 @@ All analyses were performed using the software R.
 The code for the model was adapted from [here](http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/) to be used with more than 2 age classes.
 \
 We calculated $R_{0}$ for countries having both contact matrix and age structure data available using the value of $\beta$ calculated with France data (see *Model Parameter paragraph*). Predicted $R_{0}$ for 147 countries were mapped using additional R packages sf and plotly.\
-We simulated the dynamic of the outbreak (prevalence of infection and prevalence of immunization in the population) for 4 selected countries: France, Germany, China and Niger. For this task, we introduced in the model an infected individual in the 60-64 age group. \
+We simulated the dynamic of the outbreak (prevalence of infection and prevalence of immunization in the population) for 4 selected countries: France, Germany, China and Niger. For this task, we introduced in the model an infected individual in the 40-44 age group. \
 We used age stratified proportion of severe infections to predict the age distribution of severe cases.\
 Data and codes are available online at [guithub](https://github.com/Nmoiroux/COVID).
 \
