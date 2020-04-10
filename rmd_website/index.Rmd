@@ -1,6 +1,8 @@
 ---
 title: "Theoretical effect of countries' population age distribution and social contact pattern on an uncontrolled Covid19 epidemic"
-author: 'Nicolas Moiroux and Paul Taconet (MIVEGEC, Univ. Montpellier, CNRS, IRD)'
+author: 
+- Nicolas Moiroux, [email](mailto:nicolas.moiroux@ird.fr) (MIVEGEC, Univ. Montpellier, CNRS, IRD) 
+- Paul Taconet (MIVEGEC, Univ. Montpellier, CNRS, IRD)
 date: '30 March 2020, updated on `r format(Sys.Date(), "%d %B %Y")`'
 output: html_document
 ---
@@ -98,8 +100,8 @@ figure_pop
 \
 \
 Age distribution of Niger is typical of countries with high birth rate and low life expectancy, the size of each cohort is larger than that of older cohorts. In average, individuals in Niger experience `r round(av_d_ctc[[1]], 1)` c.d$^{-1}$ (contacts per days). These contacts occur mostly between individuals of < 20 years old (that represent more than 60% of the total population).  
-Age distribution of France is almost stationary indicating equal birth and death rates. The mean number of daily contact is `r round(av_d_ctc[[2]], 1)` c.d$^{-1}$ mostly with individual of the same age. There is little differences of daily number of contacts among age classes.  
-Age distributions of China and Germany are constrictive, indicating an older population in average. The mean number of daily contact in China was `r round(av_d_ctc[[3]], 1)` c.d$^{-1}$, closed to what is observed in France but with more differences between age classes. Individuals in Germany experience the lowest number of daily contact with a mean of `r round(av_d_ctc[[4]], 1)` c.d$^{-1}$.  
+Age distribution of France is almost stationary with a somewhat equal proportion of the population in each age group. The mean number of daily contact is `r round(av_d_ctc[[2]], 1)` c.d$^{-1}$ mostly with individual of the same age. There is little differences of daily number of contacts among age classes.  
+Age distributions of China and Germany are constrictive with lower percentage of younger people. The mean number of daily contact in China was `r round(av_d_ctc[[3]], 1)` c.d$^{-1}$, closed to what is observed in France but with more differences between age classes. Individuals in Germany experience the lowest number of daily contact with a mean of `r round(av_d_ctc[[4]], 1)` c.d$^{-1}$.  
 \
 \
 
