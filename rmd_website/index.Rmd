@@ -58,12 +58,12 @@ From an estimated $R_{0}$ of 2.5 for France ([ETE modelling team, 2020](http://a
 
 #### Analyses
 All analyses were performed using the software R.
-The code for the model was adapted from [here](http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/) to be used with more than 2 age classes.
+The script for the model was adapted from [here](http://sherrytowers.com/2012/12/11/sir-model-with-age-classes/) to be used with more than 2 age classes.
 \
 We calculated $R_{0}$ for countries having both contact matrix and age structure data available using the value of $\beta$ calculated with France data (see *Model Parameter paragraph*). Predicted $R_{0}$ for 147 countries were mapped using additional R packages sf and plotly.\
 We simulated the dynamic of the outbreak (prevalence of infection and prevalence of immunization in the population) for 4 selected countries: France, Germany, China and Niger. For this task, we introduced in the model an infected individual in the 40-44 age group. \
 We used age stratified proportion of severe infections to predict the age distribution of severe cases.\
-Data and codes are available online at [guithub](https://github.com/Nmoiroux/COVID).
+Data and codes are available online at [GitHub](https://github.com/Nmoiroux/COVID).
 \
 \
 
@@ -82,7 +82,7 @@ map1
 \
 
 Predicted $R_{0}$ ranged from `r round(min(liste_pays$R),2)` in Germany to `r round(max(liste_pays$R),2)` in Niger. 
-Higher values of R0 were found to be in the inter-tropical region.\
+Higher values of $R_{0}$ were found to be in the inter-tropical region.\
 \
 
 #### Age distribution and contact characteristics of four selected countries
@@ -119,7 +119,7 @@ for (i in 1:length(countries)){
 *Reminder: $R_{0}$ of France was not predicted but estimated [here](http://alizon.ouvaton.org/Rapport1_R0_France.html#situation_post-confinement) and we used this value to estimate probability $\beta$ of transmission on contact that was used, in turn, to estimate  $R_{0}$ of other countries (see Methods section).*  
 \
 
-Here, we see that higher is the mean number of contact per individuals, higher is $R_{0}$. Higher $R_{0}$ is expected to induce faster outbreaks and a higher proportion of infected (and then immunized) individuals (Figure [3](#Fig3) and [4](#Fig4)).  
+Here, we see that the higher is the mean number of contact per individuals, the higher is $R_{0}$. Higher $R_{0}$ is expected to induce faster outbreaks and a higher proportion of infected (and then immunized) individuals (Figure [3](#Fig3) and [4](#Fig4)).  
 \
 []{#Fig3}  
 ```{r}
