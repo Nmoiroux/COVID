@@ -1,7 +1,7 @@
 
 # Theoretical effect of countries’ population age distribution and social contact pattern on an uncontrolled Covid19 epidemic
 
-Nicolas Moiroux, email (MIVEGEC, Univ. Montpellier, CNRS, IRD)
+Nicolas Moiroux, (MIVEGEC, Univ. Montpellier, CNRS, IRD)
 
 Paul Taconet (MIVEGEC, Univ. Montpellier, CNRS, IRD)
 
