@@ -1,7 +1,7 @@
 ---
 title: "Theoretical effect of countries' population age distribution and social contact pattern on an uncontrolled Covid19 epidemic"
 author: 
-- Nicolas Moiroux, [email](mailto:nicolas.moiroux@ird.fr) (MIVEGEC, Univ. Montpellier, CNRS, IRD) 
+- Nicolas Moiroux (MIVEGEC, Univ. Montpellier, CNRS, IRD) 
 - Paul Taconet (MIVEGEC, Univ. Montpellier, CNRS, IRD)
 date: '30 March 2020, updated on `r format(Sys.Date(), "%d %B %Y")`'
 output: html_document
